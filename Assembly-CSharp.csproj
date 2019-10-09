@@ -60,11 +60,15 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Assets\_Completed-Assets\Scripts\Camera\CameraControl.cs" />
     <Compile Include="Assets\Scripts\Client\ClientNetManager.cs" />
+    <Compile Include="Assets\Scripts\Client\InGameFollowCamera.cs" />
     <Compile Include="Assets\Scripts\Server\ServerNetManager.cs" />
     <Compile Include="Assets\Scripts\Shared\Logic.cs" />
     <Compile Include="Assets\Scripts\Shared\Net\NetManagerInterface.cs" />
     <Compile Include="Assets\Scripts\Shared\Net\NetworkPredefinedData.cs" />
+    <Compile Include="Assets\Scripts\UI\InGameUI.cs" />
+    <None Include="Assets\Tanks!_Third-PartyNotice.txt" />
     <Reference Include="Unity.TextMeshPro.Editor">
       <HintPath>F:/learning/u3d_official_demo/game_tank_frame_syn/Library/ScriptAssemblies/Unity.TextMeshPro.Editor.dll</HintPath>
     </Reference>
