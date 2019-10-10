@@ -1,7 +1,7 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
-
+#if _CLIENT_
 public class InGameFollowCamera : MonoBehaviour
 {
     //相机调整参数
@@ -26,8 +26,7 @@ public class InGameFollowCamera : MonoBehaviour
             
         }
     }
-    // Start is called before the first frame update
-    void Start()
+    public void Init()
     {
         m_follow_obj = Logic.Instance().GetOpEn().GetObj();
         m_cam = GetComponent<Camera>();
@@ -40,3 +39,4 @@ public class InGameFollowCamera : MonoBehaviour
         AdjustCamPos();
     }
 }
+#endif

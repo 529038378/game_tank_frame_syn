@@ -6,8 +6,10 @@ public class CEntity : IEntity
 {
     //表现层相关
     protected GameObject m_en_obj;
-
-   
+    public override int EnId
+    {
+        get; set;
+    }
 
     public override void Init()
     {

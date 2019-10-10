@@ -10,4 +10,8 @@ public abstract class IEntity
     public abstract void Op(EntityPredefined.EntityOpType op_type);
     public abstract void RecordCurPos();
     public abstract GameObject GetObj();
+    public abstract int EnId
+    {
+        get; set;
+    }
 }

@@ -1,7 +1,7 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
-
+#if _CLIENT_
 public class ButtonForward : MonoBehaviour
 {
     IEntity GetOpEn()
@@ -22,3 +22,4 @@ public class ButtonForward : MonoBehaviour
         GetOpEn().Op(EntityPredefined.EntityOpType.EOT_IDLE);
     }
 }
+#endif

@@ -5,32 +5,40 @@ using UnityEngine.SceneManagement;
 
 public class Logic : MonoBehaviour
 {
-    //测试代码
+#if _CLIENT_
     IEntity m_op_en = null;
     public IEntity GetOpEn()
     {
-        if (null == m_op_en)
-        {
-            m_op_en = new TankEntity();
-        }
         return m_op_en;
     }
-
+    public void SetOpEn(IEntity en)
+    {
+        m_op_en = en;
+    }
+#endif
     static Logic m_instance = null;
     public static Logic Instance()
     {
         return m_instance;
     }
 
+    public INetManager GetNetMng()
+    {
+        return m_network_mng;
+    }
+
     // Start is called before the first frame update
-    NetManagerInterface m_network_mng = null;
+    INetManager m_network_mng = null;
+    ISceneMng m_scene_mng = null;
     void Start()
     {
         DontDestroyOnLoad(this);
+        m_scene_mng = new CSceneMng();
+        INetManagerCallback net_callback = m_scene_mng as CSceneMng;
 #if _CLIENT_
-        //m_network_mng = new ClientNetManager();
+        m_network_mng = new ClientNetManager(net_callback);
 #else
-        m_network_mng = new ServerNetManager();
+        m_network_mng = new ServerNetManager(net_callback);
 #endif
         if (null != m_network_mng)
         {
@@ -38,21 +46,37 @@ public class Logic : MonoBehaviour
         }
         else
         {
-            //Debug.LogError("fail to init network mng");
+            Debug.LogError("fail to init network mng");
         }
         m_instance = this;
 
-        SceneManager.LoadScene("Scenes/InGameScene");
-        
     }
-
+#if _CLIENT_
+    public void RequestEnterGame()
+    {
+        m_network_mng.Send((short)EventPredefined.MsgType.EMT_ENTER_GAME, new CEvent());
+    }
+#endif
+    public void EnterInGame()
+    {
+#if _CLIENT_
+        SceneManager.LoadScene("Scenes/InGameScene");
+#endif
+        m_scene_mng.Enter();
+    }
+    public void LeaveGame()
+    {
+        m_scene_mng.Leave();
+#if _CLIENT_
+        SceneManager.LoadScene("Scenes/EntryScene");
+#endif
+    }
     // Update is called once per frame
     void Update()
     {
-        //测试代码
-        if (SceneManager.GetSceneByBuildIndex(1).isLoaded)
+        if (null != m_scene_mng && m_scene_mng.InScene)
         {
-            GetOpEn().Update();
+            m_scene_mng.Update();
         }
     }
 
@@ -60,7 +84,11 @@ public class Logic : MonoBehaviour
     {
         if (null != m_network_mng)
         {
-            m_network_mng.Quit();
+            m_network_mng.Leave();
+        }
+        if (null != m_scene_mng)
+        {
+            m_scene_mng.Leave();
         }
     }
 }

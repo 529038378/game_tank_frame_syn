@@ -12,6 +12,16 @@ public class EntityPredefined
         ECT_COUNT,
     };
 
+    //实体类型
+    public enum EntityType
+    {
+        EET_INVALID = -1,
+        EET_TANK = 0,
+        EET_BULLET,
+
+        EET_COUNT,
+    }
+
     //实体操作状态
     public enum EntityOpType
     {
@@ -22,4 +32,6 @@ public class EntityPredefined
         EOT_RIGHT,
         EOT_FIRE,
     };
+
+    public const string SceneCamera = "Camera";
 }
