@@ -28,15 +28,13 @@ public class InGameFollowCamera : MonoBehaviour
     }
     public void Init()
     {
-        m_follow_obj = Logic.Instance().GetOpEn().GetObj();
+        if (null == m_follow_obj)
+        {
+            m_follow_obj = Logic.Instance().GetOpEn().GetObj();
+        }
         m_cam = GetComponent<Camera>();
         AdjustCamPos(true);
     }
 
-    // Update is called once per frame
-    void Update()
-    {
-        AdjustCamPos();
-    }
 }
 #endif

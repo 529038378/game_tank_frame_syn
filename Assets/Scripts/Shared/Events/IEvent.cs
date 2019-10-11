@@ -5,5 +5,5 @@ using UnityEngine.Networking;
 
 public abstract class IEvent : MessageBase
 {
-    public abstract EventPredefined.MsgType GetEventType();
+   public abstract EventPredefined.MsgType GetEventType();
 }

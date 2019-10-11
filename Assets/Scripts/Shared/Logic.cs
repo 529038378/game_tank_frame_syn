@@ -54,7 +54,7 @@ public class Logic : MonoBehaviour
 #if _CLIENT_
     public void RequestEnterGame()
     {
-        m_network_mng.Send((short)EventPredefined.MsgType.EMT_ENTER_GAME, new CEvent());
+        m_network_mng.Send((short)EventPredefined.MsgType.EMT_ENTER_GAME, new CEnterInGameEvent());
     }
 #endif
     public void EnterInGame()
@@ -74,10 +74,17 @@ public class Logic : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
+#if !_CLIENT_
+        if (null != m_network_mng)
+        {
+            m_network_mng.Update();
+        }
+#endif
         if (null != m_scene_mng && m_scene_mng.InScene)
         {
             m_scene_mng.Update();
         }
+       
     }
 
     private void OnDestroy()

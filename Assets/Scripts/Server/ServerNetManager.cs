@@ -5,22 +5,68 @@ using UnityEngine.Networking;
 #if !_CLIENT_
 public class ServerNetManager : INetManager
 {
+    public void Update()
+    {
+        if (null == m_server)
+        {
+            return;
+        }
+        m_server.Update();
+    }
+    public int GetConnState()
+    {
+        if(null == m_server)
+        {
+            return -1;
+        }
+        return m_server.connections.Count;
+    }
+
     INetManagerCallback m_callback = null;
     public ServerNetManager(INetManagerCallback callback)
     {
         m_callback = callback;
-        Init();
+        m_dic_en_conn = new Dictionary<int, NetworkConnection>();
     }
     NetworkServerSimple m_server = null;
     public void Init()
     {
         m_server = new NetworkServerSimple();
-        m_server.Listen(NetworkPredefinedData.port);
         m_server.RegisterHandler(MsgType.Error, OnError);
         m_server.RegisterHandler(MsgType.Connect, OnConnect);
-        m_server.RegisterHandler((short) EventPredefined.MsgType.EMT_ENTITY_EVENT, HandleMsg);
+        m_server.RegisterHandler(MsgType.Disconnect, OnDisconnect);
+        m_server.RegisterHandler((short) EventPredefined.MsgType.EMT_ENTITY_CREATE, HandleMsg);
+        m_server.RegisterHandler((short) EventPredefined.MsgType.EMT_ENTITY_DESTROY, HandleMsg);
+        m_server.RegisterHandler((short) EventPredefined.MsgType.EMT_ENTITY_OP, HandleMsg);
         m_server.RegisterHandler((short) EventPredefined.MsgType.EMT_ENTER_GAME, HandleMsg);
+        m_server.RegisterHandler((short) EventPredefined
+            .MsgType.EMT_QUIT_GAME, OnQuitInGame);
+        if (m_server.Listen(NetworkPredefinedData.port))
+        {
+            Debug.Log("开始监听");
+        }
 
+    }
+    void OnQuitInGame(NetworkMessage msg)
+    {
+        Debug.Log("QuitGame");
+        int conn_id = m_server.connections.IndexOf(msg.conn);
+        m_dic_en_conn.Remove(conn_id);
+        if (m_dic_en_conn.Count <= 0)
+        {
+            Logic.Instance().LeaveGame();
+        }
+    }
+
+    void OnDisconnect(NetworkMessage msg)
+    {
+        Debug.Log("Disconnected!");
+        int conn_id = m_server.connections.IndexOf(msg.conn);
+        m_dic_en_conn.Remove(conn_id);
+        if (m_dic_en_conn.Count <= 0)
+        {
+            Logic.Instance().LeaveGame();
+        }
     }
     void OnConnect(NetworkMessage msg)
     {
@@ -40,7 +86,19 @@ public class ServerNetManager : INetManager
         {
             return;
         }
-        m_dic_en_conn[en_id].Send(msg_type, msg);
+        if (!m_dic_en_conn[en_id].Send(msg_type, msg))
+        {
+
+        }
+        //         NetworkWriter writer = new NetworkWriter();
+        //         CEvent ev = msg as CEvent;
+        //         writer.StartMessage((short) ev.GetEventType());
+        //         ev.Serialize(writer);
+        //         writer.FinishMessage();
+        //         if ( !m_dic_en_conn[en_id].SendWriter(writer, en_id))
+        //         {
+        // 
+        //         }
     }
     public void BroadCast(int en_id, CEntityEvent ev, bool except_self)
     {
@@ -55,7 +113,18 @@ public class ServerNetManager : INetManager
                 continue;
             }
             ev.IsLocal = en_id == pair.Key;
-            pair.Value.Send((short)EventPredefined.MsgType.EMT_ENTITY_EVENT, ev);
+            if (!pair.Value.Send((short)ev.GetEventType(), ev))
+            {
+                Debug.Log(" fail to send msg");
+            }
+//             NetworkWriter writer = new NetworkWriter();
+//             writer.StartMessage((short)ev.GetEventType());
+//             ev.Serialize(writer);
+//             writer.FinishMessage();
+//             if (!pair.Value.SendWriter(writer, en_id))
+//             {
+//                 Debug.Log(" fail to send msg");
+//             }
         }
     }
 
@@ -70,6 +139,31 @@ public class ServerNetManager : INetManager
             pair.Value.Send(msg_type, msg);
         }
     }
+
+    IEvent ParseEvent(NetworkMessage msg)
+    {
+        IEvent ev = null;
+        switch(msg.msgType)
+        {
+            case (short)EventPredefined.MsgType.EMT_ENTER_GAME:
+            ev = new CEnterInGameEvent();
+            break;
+            case (short) EventPredefined.MsgType.EMT_ENTITY_CHANGE_SCENE:
+            ev = new CEnterChangeSceneEvent();
+            break;
+            case (short) EventPredefined.MsgType.EMT_ENTITY_CREATE:
+            ev = new CCreateEvent();
+            break;
+            case (short) EventPredefined.MsgType.EMT_ENTITY_DESTROY:
+            ev = new CDestoryEvent();
+            break;
+            case (short) EventPredefined.MsgType.EMT_ENTITY_OP:
+            ev = new COpEvent();
+            break;
+        }
+        ev.Deserialize(msg.reader);
+        return ev;
+    }
     public void HandleMsg(NetworkMessage msg)
     {
         if (null == m_callback)
@@ -79,11 +173,12 @@ public class ServerNetManager : INetManager
         MessageBase mb = new CEvent();
         msg.ReadMessage<MessageBase>(mb);
         int conn_id = m_server.connections.IndexOf(msg.conn);
-        m_callback.HandleMsg(mb, conn_id);
         if (!AddConnectToDic(conn_id, msg.conn))
         {
             //短线重连的处理
         }
+       IEvent ev = ParseEvent(msg);
+        m_callback.HandleEvent(ev, conn_id);
     }
     Dictionary<int, NetworkConnection> m_dic_en_conn;
     //return : false - 断线重连，true - 原来链接

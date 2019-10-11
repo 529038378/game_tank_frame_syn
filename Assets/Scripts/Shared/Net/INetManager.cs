@@ -8,11 +8,13 @@ public interface INetManager
     void Init();
     void Leave();
     void HandleMsg(NetworkMessage msg);
+    int GetConnState();
 #if !_CLIENT_
     bool AddConnectToDic(int en_id, NetworkConnection conn);
     void BroadCast(int en_id, short msg_type, MessageBase msg , bool except_self);
     void Send(int en_id, short msg_type, MessageBase msg);
     void BroadCast(int en_id, CEntityEvent ev, bool except_self);
+    void Update();
 #else
     void Send(short msg_type, MessageBase msg);
 #endif
@@ -21,8 +23,8 @@ public interface INetManager
 public interface INetManagerCallback
 {
 #if !_CLIENT_
-    void HandleMsg(MessageBase msg, int conn_id);
+    void HandleEvent(IEvent msg, int conn_id);
 #else
-    void HandleMsg(MessageBase msg);
+    void HandleEvent(IEvent msg);
 #endif
 }
