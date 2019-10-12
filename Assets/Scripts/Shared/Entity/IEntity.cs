@@ -14,4 +14,5 @@ public abstract class IEntity
     {
         get; set;
     }
+    public abstract EntityPredefined.EntityOpType GetOpType();
 }

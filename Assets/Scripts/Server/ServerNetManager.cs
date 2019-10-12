@@ -39,6 +39,7 @@ public class ServerNetManager : INetManager
         m_server.RegisterHandler((short) EventPredefined.MsgType.EMT_ENTITY_DESTROY, HandleMsg);
         m_server.RegisterHandler((short) EventPredefined.MsgType.EMT_ENTITY_OP, HandleMsg);
         m_server.RegisterHandler((short) EventPredefined.MsgType.EMT_ENTER_GAME, HandleMsg);
+        m_server.RegisterHandler((short) EventPredefined.MsgType.EMT_CLIENT_READY, HandleMsg);
         m_server.RegisterHandler((short) EventPredefined
             .MsgType.EMT_QUIT_GAME, OnQuitInGame);
         if (m_server.Listen(NetworkPredefinedData.port))
@@ -142,6 +143,7 @@ public class ServerNetManager : INetManager
 
     IEvent ParseEvent(NetworkMessage msg)
     {
+        msg.reader.SeekZero();
         IEvent ev = null;
         switch(msg.msgType)
         {
@@ -160,8 +162,11 @@ public class ServerNetManager : INetManager
             case (short) EventPredefined.MsgType.EMT_ENTITY_OP:
             ev = new COpEvent();
             break;
+            case (short) EventPredefined.MsgType.EMT_CLIENT_READY:
+            ev = new CClientReadyEvent();
+            break;
         }
-        ev.Deserialize(msg.reader);
+        msg.ReadMessage<MessageBase>(ev);
         return ev;
     }
     public void HandleMsg(NetworkMessage msg)

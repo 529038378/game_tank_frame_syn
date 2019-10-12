@@ -25,8 +25,9 @@ public class EntityPredefined
     //实体操作状态
     public enum EntityOpType
     {
-        EOT_IDLE = -1,
-        EOT_FORWARD = 0,
+        EOT_INVALID = -1,
+        EOT_IDLE  = 0,
+        EOT_FORWARD,
         EOT_BACKWARD,
         EOT_LEFT,
         EOT_RIGHT,
@@ -34,4 +35,6 @@ public class EntityPredefined
     };
 
     public const string SceneCamera = "Camera";
+
+    public const float tank_speed = 1.0f;
 }

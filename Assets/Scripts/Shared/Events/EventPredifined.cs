@@ -6,7 +6,8 @@ public class EventPredefined
 {
     public enum MsgType
     {
-        EMT_ENTITY_CHANGE_SCENE = 100,
+        EMT_ENTITY_CHANGE_SCENE = 100, 
+        EMT_CLIENT_READY,
         EMT_ENTER_GAME,
         EMT_QUIT_GAME,
         EMT_ENTITY_CREATE,

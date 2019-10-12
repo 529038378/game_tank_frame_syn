@@ -37,4 +37,8 @@ public class CEntity : IEntity
     {
         return null;
     }
+    public override EntityPredefined.EntityOpType GetOpType()
+    {
+        return EntityPredefined.EntityOpType.EOT_INVALID;
+    }
 }

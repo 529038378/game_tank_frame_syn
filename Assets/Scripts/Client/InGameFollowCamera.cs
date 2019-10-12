@@ -28,7 +28,7 @@ public class InGameFollowCamera : MonoBehaviour
     }
     public void Init()
     {
-        if (null == m_follow_obj)
+        if (null == m_follow_obj && null != Logic.Instance().GetOpEn())
         {
             m_follow_obj = Logic.Instance().GetOpEn().GetObj();
         }

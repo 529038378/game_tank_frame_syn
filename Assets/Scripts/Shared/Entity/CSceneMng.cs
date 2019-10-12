@@ -30,7 +30,12 @@ public class CSceneMng : ISceneMng, INetManagerCallback
         m_is_scene = true;
         m_dic_ens = new Dictionary<int, IEntity>();
         m_recyle_ens = new Dictionary<int, IEntity>();
-        
+#if _CLIENT_
+        Logic.Instance().NotifyClientReady();
+#else
+        m_ready_player_count = 0;
+        m_list_player_conn_index.Clear();
+#endif
     }
 
     public override void Leave()
@@ -45,7 +50,7 @@ public class CSceneMng : ISceneMng, INetManagerCallback
             m_recyle_ens.Clear();
         }
     }
-
+#if _CLIENT_
     //创建实体
     void UpdateInGameCamera()
     {
@@ -61,6 +66,8 @@ public class CSceneMng : ISceneMng, INetManagerCallback
         }
         follow_cam.Init();
     }
+    
+#endif
     void CreateEn(IEvent ev)
     {
         CCreateEvent cce = ev as CCreateEvent;
@@ -80,6 +87,7 @@ public class CSceneMng : ISceneMng, INetManagerCallback
         if (cce.IsLocal)
         {
             Logic.Instance().SetOpEn(en);
+            Logic.Instance().FrameSynLogic.ActivePlayerEn();
         }
 #endif
     }
@@ -88,7 +96,7 @@ public class CSceneMng : ISceneMng, INetManagerCallback
     void EnOp(IEvent ev)
     {
         COpEvent coe = ev as COpEvent;
-        if (null == coe)
+        if (null == coe || coe.IsLocal)
         {
             return;
         }
@@ -119,10 +127,10 @@ public class CSceneMng : ISceneMng, INetManagerCallback
         en.Destroy();
     }
 
+
+#if !_CLIENT_
     //key : frame_index, value : CRecordEventS
     Dictionary<int, CEntityEvent> m_record_evs;
-
-#if !_CIENT_
     void RecordEv(IEvent ev)
     {
         CEntityEvent re = ev as CEntityEvent;
@@ -132,6 +140,10 @@ public class CSceneMng : ISceneMng, INetManagerCallback
         }
         m_record_evs.Add(re.FrameIndex, re);
 
+    }
+    public override Dictionary<int, CEntityEvent> GetRecordEvs()
+    {
+        return m_record_evs;
     }
 #endif
     void HandleEntityEvent(IEvent ev)
@@ -211,7 +223,17 @@ public class CSceneMng : ISceneMng, INetManagerCallback
     {
         m_list_player_conn_index.Add(en_id);
         NotifyToChangeScene(en_id);
-        if(EventPredefined.max_player == m_list_player_conn_index.Count)
+    }
+    int m_ready_player_count;
+    void WaitForAllClintReady(IEvent ev)
+    {
+        CClientReadyEvent cre = ev as CClientReadyEvent;
+        if (null == cre)
+        {
+            return;
+        }
+        ++m_ready_player_count;
+        if(EventPredefined.max_player == m_ready_player_count)
         {
             CreatePlayerObjForAllClient();
             ServerEnterInGame();
@@ -260,10 +282,12 @@ public class CSceneMng : ISceneMng, INetManagerCallback
             case EventPredefined.MsgType.EMT_ENTITY_DESTROY:
             case EventPredefined.MsgType.EMT_ENTITY_OP:
             HandleEntityEvent(ev);
-            HandleEntityEvent(ev);
             return;
             case EventPredefined.MsgType.EMT_ENTER_GAME:
             HandleEnterInGame(ev, en_id);
+            break;
+            case EventPredefined.MsgType.EMT_CLIENT_READY:
+            WaitForAllClintReady(ev);
             break;
             default:
             Debug.Log("wrong event type");
@@ -275,8 +299,9 @@ public class CSceneMng : ISceneMng, INetManagerCallback
 
     public override void Update()
     {
+#if _CLIENT_
         UpdateInGameCamera();
-
+#endif
         foreach (var pair in m_dic_ens)
         {
             IEntity en = pair.Value as IEntity;
@@ -297,5 +322,18 @@ public class CSceneMng : ISceneMng, INetManagerCallback
             en.Destroy();
         }
         m_recyle_ens.Clear();
+    }
+    public override void UpdateTankEnPostions()
+    {
+        foreach (var pair in m_dic_ens)
+        {
+            TankEntity en = pair.Value as TankEntity;
+            if (null == en)
+            {
+                continue;
+            }
+            en.RecordCurPos();
+            en.UpdateTargetPos();
+        }
     }
 }

@@ -73,6 +73,8 @@
     <Compile Include="Assets\Scripts\Shared\Events\CEvent.cs" />
     <Compile Include="Assets\Scripts\Shared\Events\EventPredifined.cs" />
     <Compile Include="Assets\Scripts\Shared\Events\IEvent.cs" />
+    <Compile Include="Assets\Scripts\Shared\FrameSyn\CFrameSyn.cs" />
+    <Compile Include="Assets\Scripts\Shared\FrameSyn\IFrameSyn.cs" />
     <Compile Include="Assets\Scripts\Shared\Logic.cs" />
     <Compile Include="Assets\Scripts\Shared\Net\INetManager.cs" />
     <Compile Include="Assets\Scripts\Shared\Net\NetworkPredefinedData.cs" />
@@ -82,6 +84,7 @@
     <Compile Include="Assets\Scripts\UI\ButtonRight.cs" />
     <Compile Include="Assets\Scripts\UI\EnterGame.cs" />
     <Compile Include="Assets\Scripts\UI\NetState.cs" />
+    <Compile Include="Assets\Scripts\UI\QuitGame.cs" />
     <None Include="Assets\Tanks!_Third-PartyNotice.txt" />
     <Reference Include="Unity.TextMeshPro.Editor">
       <HintPath>F:/learning/u3d_official_demo/game_tank_frame_syn/Library/ScriptAssemblies/Unity.TextMeshPro.Editor.dll</HintPath>

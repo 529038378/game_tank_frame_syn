@@ -175,3 +175,11 @@ public class CEnterChangeSceneEvent : CEvent
         m_ev_type = EventPredefined.MsgType.EMT_ENTITY_CHANGE_SCENE;
     }
 }
+
+public class CClientReadyEvent : CEvent
+{
+    public CClientReadyEvent()
+    {
+        m_ev_type = EventPredefined.MsgType.EMT_CLIENT_READY;
+    }
+}
