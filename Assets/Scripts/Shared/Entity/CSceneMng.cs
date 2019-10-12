@@ -54,7 +54,7 @@ public class CSceneMng : ISceneMng, INetManagerCallback
     //创建实体
     void UpdateInGameCamera()
     {
-        GameObject cam = GameObject.Find("Camera");
+        GameObject cam = GameObject.Find(EntityPredefined.SceneCamera);
         if (null == cam)
         {
             return;
@@ -64,7 +64,7 @@ public class CSceneMng : ISceneMng, INetManagerCallback
         {
             return;
         }
-        follow_cam.Init();
+        follow_cam.UpdateByFollow();
     }
     
 #endif
@@ -300,7 +300,7 @@ public class CSceneMng : ISceneMng, INetManagerCallback
     public override void Update()
     {
 #if _CLIENT_
-        UpdateInGameCamera();
+        //UpdateInGameCamera();
 #endif
         foreach (var pair in m_dic_ens)
         {

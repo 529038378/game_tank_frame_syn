@@ -34,7 +34,7 @@ public class EntityPredefined
         EOT_FIRE,
     };
 
-    public const string SceneCamera = "Camera";
+    public const string SceneCamera = "InGameFollowCamera";
 
     public const float tank_speed = 1.0f;
 }
