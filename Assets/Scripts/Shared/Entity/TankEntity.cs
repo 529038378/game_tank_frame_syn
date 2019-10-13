@@ -102,6 +102,7 @@ public class TankEntity : CEntity
         }
         float delat_time = Time.time - Logic.Instance().FrameSynLogic.FrameBeginTime;
         target_pos += m_en_obj.transform.forward * EntityPredefined.tank_speed * (NetworkPredefinedData.frame_syn_gap - delat_time);
+        cur_pos -= m_en_obj.transform.forward * EntityPredefined.tank_speed * delat_time;
         Debug.Log("delat_time : " + delat_time.ToString());
     }
     
@@ -156,7 +157,7 @@ public class TankEntity : CEntity
         base.Op(op_type);
 
         //调整转向等等
-        int offset = (int) ( op_type - EntityPredefined.EntityOpType.EOT_FORWARD );
+        int offset = (int) ( op_type );
         bool start_move = offset <= (int) EntityPredefined.EntityOpType.EOT_RIGHT && offset >= (int) EntityPredefined.EntityOpType.EOT_FORWARD;
         if (start_move)
         {
