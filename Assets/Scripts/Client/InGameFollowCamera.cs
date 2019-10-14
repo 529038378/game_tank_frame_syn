@@ -23,7 +23,7 @@ public class InGameFollowCamera : MonoBehaviour
             Vector3 dir = new Vector3(Mathf.Cos(Mathf.Deg2Rad * v_degree ) * Mathf.Sin(Mathf.Deg2Rad * h_degree), Mathf.Sin(Mathf.Deg2Rad * v_degree), Mathf.Cos(Mathf.Deg2Rad * v_degree) * Mathf.Cos(Mathf.Deg2Rad * h_degree));
             m_cam.transform.position = m_follow_obj.transform.position + new Vector3(0, head_point, 0) + offset_radius * dir;
             m_cam.transform.LookAt(m_follow_obj.transform.position + new Vector3(0, head_point, 0));
-            Debug.Log("cam pos : " + m_cam.transform.position.ToString());   
+            //Debug.Log("cam pos : " + m_cam.transform.position.ToString());   
         }
     }
     public void UpdateByFollow()

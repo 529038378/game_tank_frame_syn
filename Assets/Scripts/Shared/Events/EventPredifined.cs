@@ -13,6 +13,8 @@ public class EventPredefined
         EMT_ENTITY_CREATE,
         EMT_ENTITY_DESTROY,
         EMT_ENTITY_OP,
+
+        EMT_SYN_ENTITY_OPS,//同步一帧内所有实体的操作数据
     }
 
     public enum EntityEventType
@@ -26,6 +28,6 @@ public class EventPredefined
 
 #if !_CLIENT_
     //局内的最多玩家数量
-    public const int max_player = 1;
+    public const int max_player = 2;
 #endif 
 }

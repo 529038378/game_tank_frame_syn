@@ -10,8 +10,8 @@ public abstract class IFrameSyn
     public abstract void Leave();
     public abstract float FrameRatio { get; set; }
     public abstract bool IsWorking { get; set; }
+    public abstract float FrameBeginTime { get; set; }
 #if _CLIENT_
-    public abstract void ActivePlayerEn();
-    public abstract float FrameBeginTime{get;set;}
+    public abstract void ActivePlayerEn(int frame_begin_index);
 #endif 
 }

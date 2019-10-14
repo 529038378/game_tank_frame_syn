@@ -4,10 +4,36 @@ using UnityEngine;
 
 public class TankEntity : CEntity
 {
-    public TankEntity(int en_id)
+    public TankEntity(int en_id, bool is_local, EntityPredefined.EntityCampType camp_type, int spwan_pos_index)
     {
         Init();
+        EnId = en_id;
+#if _CLIENT_
+        m_is_local = is_local;
+#endif
+        m_camp_type = camp_type;
+
+        //根据spwan_pos_index更新初始位置
+        InitPos(spwan_pos_index);
     }
+    void InitPos(int spwan_pos_index)
+    {
+        Vector3 pos = new Vector3();
+        switch(spwan_pos_index)
+        {
+            case 0:
+            pos = EntityPredefined.spwan_pos0;
+            break;
+            case 1:
+            pos = EntityPredefined.spwan_pos1;
+            break;
+        }
+        cur_pos = pos;
+        target_pos = pos;
+    }
+#if _CLIENT_
+    bool m_is_local;
+#endif
     string private_path = "Prefabs/Tank";
     public override void Init()
     {
@@ -21,6 +47,7 @@ public class TankEntity : CEntity
             }
         }
         m_op_type = EntityPredefined.EntityOpType.EOT_IDLE;
+        MovStateSeqFrameNum = 0;
     }
     //逻辑层相关的东西
     Vector3 target_pos;
@@ -61,11 +88,11 @@ public class TankEntity : CEntity
     }
     void StopMoveImm()
     {
-        target_pos = Vector3.Lerp(cur_pos, target_pos, Logic.Instance().FrameSynLogic.FrameRatio);
+        target_pos = m_en_obj.transform.position;
         cur_pos = target_pos;
-        m_en_obj.transform.position = cur_pos;
-//         target_pos = m_en_obj.transform.position;
-//         cur_pos = target_pos;
+        //         target_pos = m_en_obj.transform.position;
+        //         cur_pos = target_pos;
+        /*Debug.Log("EnId :" + EnId.ToString() + " stop frame index : " + Logic.Instance().FrameSynLogic.FrameIndex);*/
     }
     public override void Update()
     {
@@ -101,9 +128,8 @@ public class TankEntity : CEntity
             return;
         }
         float delat_time = Time.time - Logic.Instance().FrameSynLogic.FrameBeginTime;
-        target_pos += m_en_obj.transform.forward * EntityPredefined.tank_speed * (NetworkPredefinedData.frame_syn_gap - delat_time);
-        cur_pos -= m_en_obj.transform.forward * EntityPredefined.tank_speed * delat_time;
-        Debug.Log("delat_time : " + delat_time.ToString());
+        target_pos += m_en_obj.transform.forward * EntityPredefined.tank_speed * NetworkPredefinedData.frame_syn_gap ;
+        //Debug.Log("delat_time : " + delat_time.ToString());
     }
     
     Vector3 VectorInPlane(Vector3 vec, Vector3 plane_normal)
@@ -121,7 +147,7 @@ public class TankEntity : CEntity
             GameObject cam = GameObject.Find(EntityPredefined.SceneCamera);
             if (null == cam)
             {
-                Debug.Log("Fail to find scene camera");
+                //Debug.Log("Fail to find scene camera");
                 return;
             }
             Vector3 cam_forward = cam.transform.forward;
@@ -152,10 +178,13 @@ public class TankEntity : CEntity
         }
     }
 
+    public int MovStateSeqFrameNum = 0;
+    private int m_single_seq_begin_frame_index = 0;
+    
     public override void Op(EntityPredefined.EntityOpType op_type)
     {
         base.Op(op_type);
-
+        /*Debug.Log(" en id : " + EnId.ToString() + " op_type : " + op_type.ToString() + " frame_index : " + Logic.Instance().FrameSynLogic.FrameBeginTime.ToString());*/
         //调整转向等等
         int offset = (int) ( op_type );
         bool start_move = offset <= (int) EntityPredefined.EntityOpType.EOT_RIGHT && offset >= (int) EntityPredefined.EntityOpType.EOT_FORWARD;
@@ -163,13 +192,20 @@ public class TankEntity : CEntity
         {
             UpdateRotation(op_type);
         }
-
+        //测试代码
+        bool change_state = op_type != m_op_type;
+        if (change_state && start_move)
+        {
+            //开始运动
+            m_single_seq_begin_frame_index = Logic.Instance().FrameSynLogic.FrameIndex;
+        }
+        else if (change_state && !start_move)
+        {
+            //停止运动
+            MovStateSeqFrameNum += Logic.Instance().FrameSynLogic.FrameIndex - m_single_seq_begin_frame_index;
+        }
         //跟前面的api调用顺序相关
         m_op_type = op_type;
-        if (start_move)
-        {
-            UpdateTargetPos();
-        }
     }
     public override void RecordCurPos()
     {
@@ -178,5 +214,16 @@ public class TankEntity : CEntity
     public override EntityPredefined.EntityOpType GetOpType()
     {
         return m_op_type;
+    }
+
+    public override void Destroy()
+    {
+        base.Destroy();
+#if _CLIENT_
+        if (m_is_local)
+        {
+            Logic.Instance().GetNetMng().Send((short) EventPredefined.MsgType.EMT_ENTITY_DESTROY, new CDestoryEvent(Logic.Instance().FrameSynLogic.FrameIndex, EnId));
+        }
+#endif
     }
 }

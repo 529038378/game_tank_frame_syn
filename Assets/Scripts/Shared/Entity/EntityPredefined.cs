@@ -37,4 +37,6 @@ public class EntityPredefined
     public const string SceneCamera = "InGameFollowCamera";
 
     public const float tank_speed = 1.0f;
+    public static Vector3 spwan_pos0 = new Vector3(0, 0, 0);
+    public static Vector3 spwan_pos1 = new Vector3(10, 0, 0);
 }

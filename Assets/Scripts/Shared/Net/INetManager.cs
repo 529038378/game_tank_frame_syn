@@ -11,7 +11,7 @@ public interface INetManager
     int GetConnState();
 #if !_CLIENT_
     bool AddConnectToDic(int en_id, NetworkConnection conn);
-    void BroadCast(int en_id, short msg_type, MessageBase msg , bool except_self);
+    void BroadCast(short msg_type, MessageBase msg);
     void Send(int en_id, short msg_type, MessageBase msg);
     void BroadCast(int en_id, CEntityEvent ev, bool except_self);
     void Update();

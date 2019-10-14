@@ -33,6 +33,7 @@ public class ClientNetManager : INetManager
         m_client.RegisterHandler((short) EventPredefined.MsgType.EMT_ENTITY_DESTROY
 , HandleMsg);
         m_client.RegisterHandler((short) EventPredefined.MsgType.EMT_ENTITY_OP, HandleMsg);
+        m_client.RegisterHandler((short) EventPredefined.MsgType.EMT_SYN_ENTITY_OPS, HandleMsg);
         m_client.Connect(NetworkPredefinedData.server_ip, NetworkPredefinedData.port);
     }
 
@@ -50,6 +51,10 @@ public class ClientNetManager : INetManager
     }
     public void Send(short msg_type, MessageBase msg)
     {
+        if (!m_client.isConnected)
+        {
+            return;
+        }
         m_client.Send(msg_type, msg);
         return;
         CEvent ev = msg as CEvent;
@@ -76,6 +81,9 @@ public class ClientNetManager : INetManager
             break;
             case (short) EventPredefined.MsgType.EMT_ENTITY_OP:
             ev = new COpEvent();
+            break;
+            case (short) EventPredefined.MsgType.EMT_SYN_ENTITY_OPS:
+            ev = new CSynOpEvent();
             break;
         }
         //ev.Deserialize(msg.reader);

@@ -2,7 +2,11 @@
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Networking;
-    
+using System.Text;
+using System.IO;
+using System.Runtime.Serialization;
+using System.Runtime.Serialization.Formatters.Binary;
+
 public class CEvent : IEvent
 {
     public CEvent()
@@ -126,7 +130,7 @@ public class COpEvent : CEntityEvent
     }
 
     public COpEvent(int frame_index, int en_id, EntityPredefined.EntityOpType op_type)
-        : base(frame_index, en_id, EventPredefined.MsgType.EMT_ENTITY_DESTROY)
+        : base(frame_index, en_id, EventPredefined.MsgType.EMT_ENTITY_OP)
     {
         m_en_et = EventPredefined.EntityEventType.ET_OP;
         OpType = op_type;
@@ -181,5 +185,61 @@ public class CClientReadyEvent : CEvent
     public CClientReadyEvent()
     {
         m_ev_type = EventPredefined.MsgType.EMT_CLIENT_READY;
+    }
+}
+
+public class CSynOpEvent : CEvent
+{
+    public CSynOpEvent()
+        : base(EventPredefined.MsgType.EMT_SYN_ENTITY_OPS)
+    {
+        RecordEnEvs = new List<IEvent>();
+    }
+
+    public int FrameIndex { get; set; }
+    //key : en_id, value : event
+    public List<IEvent> RecordEnEvs { get; set; }
+    public override void Deserialize(NetworkReader reader)
+    {
+        base.Deserialize(reader);
+        FrameIndex = reader.ReadInt32();
+
+        byte[] bytes = reader.ReadBytes((int)(reader.Length - reader.Position));
+        NetworkReader imp_reader = new NetworkReader(bytes);
+        //分批读取
+        while (0 != bytes.Length)
+        {
+            EventPredefined.MsgType ev_type =(EventPredefined.MsgType) bytes[0];
+            imp_reader = new NetworkReader(bytes);
+            IEvent ev = null;
+            switch (ev_type)
+            {
+                case EventPredefined.MsgType.EMT_ENTITY_CREATE:
+                ev = new CCreateEvent();
+                break;
+                case EventPredefined.MsgType.EMT_ENTITY_DESTROY:
+                ev = new CDestoryEvent();
+                break;
+                case EventPredefined.MsgType.EMT_ENTITY_OP:
+                ev = new COpEvent();
+                break;
+            }
+            ev.Deserialize(imp_reader);
+            //debug代码
+            COpEvent oe = ev as COpEvent;
+            bytes = imp_reader.ReadBytes((int)(imp_reader.Length - imp_reader.Position));
+            imp_reader = new NetworkReader(bytes);
+            RecordEnEvs.Add(ev);
+        }
+    }
+
+    public override void Serialize(NetworkWriter writer)
+    {
+        base.Serialize(writer);
+        writer.Write(FrameIndex);
+        foreach (var ev in RecordEnEvs)
+        {
+            ev.Serialize(writer);
+        }
     }
 }

@@ -7,7 +7,16 @@ public class ServerNetManager : INetManager
 {
     public void Update()
     {
-        if (null == m_server)
+        int avil_conn = 0;
+        foreach(var conn in m_server.connections)
+        {
+            if (null != conn && conn.isConnected)
+            {
+                ++avil_conn;
+            }
+        }
+
+        if (null == m_server && m_server.connections.Count > 0)
         {
             return;
         }
@@ -19,7 +28,15 @@ public class ServerNetManager : INetManager
         {
             return -1;
         }
-        return m_server.connections.Count;
+        int count = 0;
+        foreach (var conn in m_server.connections)
+        {
+            if (null != conn && conn.isConnected)
+            {
+                ++count;
+            }
+        }
+        return count;
     }
 
     INetManagerCallback m_callback = null;
@@ -62,7 +79,7 @@ public class ServerNetManager : INetManager
     void OnDisconnect(NetworkMessage msg)
     {
         Debug.Log("Disconnected!");
-        int conn_id = m_server.connections.IndexOf(msg.conn);
+        int conn_id = msg.conn.connectionId;
         m_dic_en_conn.Remove(conn_id);
         if (m_dic_en_conn.Count <= 0)
         {
@@ -129,15 +146,14 @@ public class ServerNetManager : INetManager
         }
     }
 
-    public void BroadCast(int en_id, short msg_type, MessageBase msg, bool except_self = false)
+    public void BroadCast(short msg_type, MessageBase msg)
     {
         foreach(var pair in m_dic_en_conn)
         {
-            if (except_self && pair.Key == en_id)
+            if (null != pair.Value && pair.Value.isConnected)
             {
-                continue;
+                pair.Value.Send(msg_type, msg);
             }
-            pair.Value.Send(msg_type, msg);
         }
     }
 
