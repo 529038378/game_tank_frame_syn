@@ -106,7 +106,7 @@ public class TankEntity : CEntity
         switch(m_op_type)
         {
             case EntityPredefined.EntityOpType.EOT_IDLE:
-            StopMoveImm();
+            //StopMoveImm();
             break;
             case EntityPredefined.EntityOpType.EOT_FORWARD:
             case EntityPredefined.EntityOpType.EOT_BACKWARD:
