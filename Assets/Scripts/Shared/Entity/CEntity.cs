@@ -16,7 +16,7 @@ public class CEntity : IEntity
 
     }
 
-    public override void Update()
+    public override void Update(float delta_time)
     {
         
     }
@@ -26,10 +26,10 @@ public class CEntity : IEntity
         GameObject.Destroy(m_en_obj);
     }
 
-    public override void Op(EntityPredefined.EntityOpType op_type)
+    public override void Op(EntityPredefined.EntityOpType op_type, EntityPredefined.EntityExtOpType ext_op_type)
     {
     }
-    public override void RecordCurPos()
+    public override void ImplementCurFrameOpType()
     {
 
     }
@@ -40,5 +40,9 @@ public class CEntity : IEntity
     public override EntityPredefined.EntityOpType GetOpType()
     {
         return EntityPredefined.EntityOpType.EOT_INVALID;
+    }
+    public override EntityPredefined.EntityExtOpType GetExtOpType()
+    {
+        return EntityPredefined.EntityExtOpType.EEOT_NONE;
     }
 }

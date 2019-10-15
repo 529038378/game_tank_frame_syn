@@ -15,11 +15,11 @@ public class ButtonRight : MonoBehaviour
 
     public void ButtonDown()
     {
-        GetOpEn().Op(EntityPredefined.EntityOpType.EOT_RIGHT);
+        GetOpEn().Op(EntityPredefined.EntityOpType.EOT_RIGHT, EntityPredefined.EntityExtOpType.EEOT_NONE);
     }
     public void ButtonUp()
     {
-        GetOpEn().Op(EntityPredefined.EntityOpType.EOT_IDLE);
+        GetOpEn().Op(EntityPredefined.EntityOpType.EOT_IDLE, EntityPredefined.EntityExtOpType.EEOT_NONE);
     }
 }
 #endif

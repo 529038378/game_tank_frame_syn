@@ -63,8 +63,10 @@
     <Compile Include="Assets\_Completed-Assets\Scripts\Camera\CameraControl.cs" />
     <Compile Include="Assets\Scripts\Client\CameraTest.cs" />
     <Compile Include="Assets\Scripts\Client\ClientNetManager.cs" />
+    <Compile Include="Assets\Scripts\Client\Collider\ICollidCallback.cs" />
     <Compile Include="Assets\Scripts\Client\InGameFollowCamera.cs" />
     <Compile Include="Assets\Scripts\Server\ServerNetManager.cs" />
+    <Compile Include="Assets\Scripts\Shared\Entity\BulletEntity.cs" />
     <Compile Include="Assets\Scripts\Shared\Entity\CEntity.cs" />
     <Compile Include="Assets\Scripts\Shared\Entity\CSceneMng.cs" />
     <Compile Include="Assets\Scripts\Shared\Entity\EntityPredefined.cs" />

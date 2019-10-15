@@ -19,7 +19,7 @@ public class CFrameSyn : IFrameSyn
         //把PlayerEn的操作同步到服务器端
         if (null != m_player_en)
         {
-            Logic.Instance().GetNetMng().Send((short) EventPredefined.MsgType.EMT_ENTITY_OP, new COpEvent(FrameIndex, m_player_en.EnId, m_player_en.GetOpType()));
+            Logic.Instance().GetNetMng().Send((short) EventPredefined.MsgType.EMT_ENTITY_OP, new COpEvent(FrameIndex, m_player_en.EnId, m_player_en.GetOpType(), m_player_en.GetExtOpType()));
         }
     }
 #else
@@ -58,7 +58,7 @@ public class CFrameSyn : IFrameSyn
                 {
                     continue;
                 }
-                coll_evs.Add(new COpEvent(FrameIndex, cee.EnId, cee.GetOpType()));
+                coll_evs.Add(new COpEvent(FrameIndex, cee.EnId, cee.GetOpType(), cee.GetExtOpType()));
             }
             ev.FrameIndex = FrameIndex;
             ev.RecordEnEvs = coll_evs;
@@ -74,7 +74,8 @@ public class CFrameSyn : IFrameSyn
         while(acc_time > NetworkPredefinedData.frame_syn_gap)
         {
             FrameBeginTime = Time.time;
-            Logic.Instance().GetSceneMng().UpdateTankEnPostions();
+            Logic.Instance().GetSceneMng().ImplementCurFrameOpType();
+            //Logic.Instance().GetSceneMng().UpdateTankEnPostions();
             //FrameIndex的顺序这样是为了保证在两端实体创建帧跟同帧的操作帧不冲突
 #if _CLIENT_
             FrameIndex++;

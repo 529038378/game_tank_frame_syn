@@ -128,4 +128,11 @@ public class Logic : MonoBehaviour
     {
         return m_scene_mng;
     }
+#if _CLIENT_
+    public IColliderCallback GetCollCallback()
+    {
+        IColliderCallback callback = m_scene_mng as IColliderCallback;
+        return callback;
+    }
+#endif
 }

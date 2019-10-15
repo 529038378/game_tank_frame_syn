@@ -129,24 +129,26 @@ public class COpEvent : CEntityEvent
 
     }
 
-    public COpEvent(int frame_index, int en_id, EntityPredefined.EntityOpType op_type)
+    public COpEvent(int frame_index, int en_id, EntityPredefined.EntityOpType op_type, EntityPredefined.EntityExtOpType op_ext_type)
         : base(frame_index, en_id, EventPredefined.MsgType.EMT_ENTITY_OP)
     {
         m_en_et = EventPredefined.EntityEventType.ET_OP;
         OpType = op_type;
+        OpExtType = op_ext_type;
     }
     public EntityPredefined.EntityOpType OpType { get; set; }
-
+    public EntityPredefined.EntityExtOpType OpExtType { get; set; }
     public override void Serialize(NetworkWriter writer)
     {
         base.Serialize(writer);
         writer.Write((short) OpType);
+        writer.Write((short) OpExtType);
     }
     public override void Deserialize(NetworkReader reader)
     {
         base.Deserialize(reader);
         OpType = (EntityPredefined.EntityOpType) reader.ReadInt16();
-
+        OpExtType = (EntityPredefined.EntityExtOpType) reader.ReadInt16();
     }
 }
 

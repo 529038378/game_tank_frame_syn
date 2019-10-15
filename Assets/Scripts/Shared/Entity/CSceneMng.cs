@@ -4,6 +4,9 @@ using UnityEngine;
 using UnityEngine.Networking;
 
 public class CSceneMng : ISceneMng, INetManagerCallback
+#if _CILENT_
+    , IColliderCallback
+#endif
 {
     public CSceneMng()
     {
@@ -13,6 +16,7 @@ public class CSceneMng : ISceneMng, INetManagerCallback
 #endif
         m_dic_ens = new Dictionary<int, IEntity>();
         m_recyle_ens = new Dictionary<int, IEntity>();
+        m_collider_en_map = new Dictionary<Collider, IEntity>();
     }
     bool m_is_scene;
     public override bool InScene
@@ -35,6 +39,8 @@ public class CSceneMng : ISceneMng, INetManagerCallback
         m_recyle_ens.Clear();
 #if _CLIENT_
         Logic.Instance().NotifyClientReady();
+        m_acc_time = 0;
+        m_collider_en_map.Clear();
 #else
         m_ready_player_count = 0;
         m_record_evs.Clear();
@@ -65,7 +71,8 @@ public class CSceneMng : ISceneMng, INetManagerCallback
             Logic.Instance().FrameSynLogic.Leave();
         }
 #if _CLIENT_
-
+        m_acc_time = 0;
+        m_collider_en_map.Clear();
 #else
         m_ready_player_count = 0;
         m_record_evs.Clear();
@@ -94,7 +101,23 @@ public class CSceneMng : ISceneMng, INetManagerCallback
         follow_cam.UpdateByFollow();
     }
     int m_local_en_id;
+    void AddToColliderMap(IEntity en)
+    {
+        if (null == en.GetObj())
+        {
+            return;
+        }
+        Collider coll = en.GetObj().GetComponent<Collider>();
+        if (null == coll)
+        {
+            return;
+        }
+        m_collider_en_map.Add(coll, en);
+    }
+
 #endif
+    //碰撞检测维护的表
+    Dictionary<Collider, IEntity> m_collider_en_map;
     void CreateEn(IEvent ev)
     {
         CCreateEvent cce = ev as CCreateEvent;
@@ -106,11 +129,12 @@ public class CSceneMng : ISceneMng, INetManagerCallback
         switch(cce.EnType)
         {
             case EntityPredefined.EntityType.EET_TANK:
-          en = new TankEntity(cce.EnId, cce.IsLocal, cce.CampType, cce.SpwanPosIndex);  
+            en = new TankEntity(cce.EnId, cce.IsLocal, cce.CampType, cce.SpwanPosIndex);  
             break;
         }
         m_dic_ens.Add(cce.EnId, en);
 #if _CLIENT_
+        AddToColliderMap(en);
         if (cce.IsLocal)
         {
             Logic.Instance().SetOpEn(en);
@@ -140,7 +164,7 @@ public class CSceneMng : ISceneMng, INetManagerCallback
         }
 
         IEntity en = m_dic_ens[coe.EnId];
-        en.Op(coe.OpType);
+        en.Op(coe.OpType, coe.OpExtType);
     }
 
     //摧毁实体
@@ -364,34 +388,36 @@ public class CSceneMng : ISceneMng, INetManagerCallback
         }
     }
 #endif
-
+    float m_acc_time;
     public override void Update()
     {
-#if _CLIENT_
-        //UpdateInGameCamera();
-#endif
-        foreach (var pair in m_dic_ens)
+        m_acc_time += Time.deltaTime;
+        while(m_acc_time > EntityPredefined.render_update_gap)
         {
-            IEntity en = pair.Value as IEntity;
-            if (null == en)
+            foreach (var pair in m_dic_ens)
             {
-                continue;
+                IEntity en = pair.Value as IEntity;
+                if (null == en)
+                {
+                    continue;
+                }
+                en.Update(EntityPredefined.render_update_gap);
             }
-            en.Update();
-        }
 
-        foreach(var pair in m_recyle_ens)
-        {
-            IEntity en = pair.Value as IEntity;
-            if(null == en)
+            foreach (var pair in m_recyle_ens)
             {
-                continue;
+                IEntity en = pair.Value as IEntity;
+                if (null == en)
+                {
+                    continue;
+                }
+                en.Destroy();
             }
-            en.Destroy();
+            m_recyle_ens.Clear();
+            m_acc_time -= EntityPredefined.render_update_gap;
         }
-        m_recyle_ens.Clear();
     }
-    public override void UpdateTankEnPostions()
+    public override void ImplementCurFrameOpType()
     {
         foreach (var pair in m_dic_ens)
         {
@@ -400,11 +426,22 @@ public class CSceneMng : ISceneMng, INetManagerCallback
             {
                 continue;
             }
-            en.RecordCurPos();
-            en.UpdateTargetPos();
+            en.ImplementCurFrameOpType();
         }
     }
-
+//     public override void UpdateTankEnPostions()
+//     {
+//         foreach (var pair in m_dic_ens)
+//         {
+//             TankEntity en = pair.Value as TankEntity;
+//             if (null == en)
+//             {
+//                 continue;
+//             }
+//             en.RecordCurPos();
+//             en.UpdateTargetPos();
+//         }
+//     }
     public override string GetNonLocalEn()
     {
         string res = "Entity State : \n";
@@ -418,5 +455,31 @@ public class CSceneMng : ISceneMng, INetManagerCallback
         }
         return res;
     }
+#if _CLIENT_
+    public void OnCollision(Collider coll)
+    {
+        if(m_collider_en_map.ContainsKey(coll))
+        {
+            return;
+        }
 
+        IEntity en = m_collider_en_map[coll];
+        if (null != en)
+        {
+            Logic.Instance().GetNetMng().Send((short) EventPredefined.MsgType.EMT_ENTITY_DESTROY, new CDestoryEvent(Logic.Instance().FrameSynLogic.FrameIndex, en.EnId));
+        }
+    }
+    public override void RecycleEn(IEntity en)
+    {
+        m_recyle_ens.Add(en.EnId, en);
+    }
+    
+    public override void CreateBullet(Vector3 pos, Vector3 forward)
+    {
+        Vector3 bullet_swpan_pos = pos + forward.normalized * EntityPredefined.BulletSwpanOffset.z;
+        bullet_swpan_pos.y += EntityPredefined.BulletSwpanOffset.y;
+        IEntity en = new BulletEntity(bullet_swpan_pos, forward);
+        m_dic_ens.Add(en.GetHashCode(), en);
+    }
+#endif
 }

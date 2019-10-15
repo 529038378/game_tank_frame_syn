@@ -31,12 +31,29 @@ public class EntityPredefined
         EOT_BACKWARD,
         EOT_LEFT,
         EOT_RIGHT,
-        EOT_FIRE,
+
+        EOT_COUNT,
     };
+
+    [System.Flags]
+    public enum EntityExtOpType
+    {
+        EEOT_NONE = 1,
+        EEOT_FIRE = 2,
+    }
 
     public const string SceneCamera = "InGameFollowCamera";
 
     public const float tank_speed = 1.0f;
     public static Vector3 spwan_pos0 = new Vector3(0, 0, 0);
     public static Vector3 spwan_pos1 = new Vector3(10, 0, 0);
+
+    public const float bullet_speed = 10.0f;
+    public const string TankPrefabPath = "Prefabs/Tank";
+    public const string BulletPrefabPath
+        = "Prefabs/Shell";
+    public const float render_update_gap = 0.02f;
+    public const string PlayerEnTag = "Player";
+
+    public  static Vector3 BulletSwpanOffset = new Vector3(0, 1.6f, 1);
 }
