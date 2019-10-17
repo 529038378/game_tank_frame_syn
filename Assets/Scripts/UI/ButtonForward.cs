@@ -15,11 +15,11 @@ public class ButtonForward : MonoBehaviour
 
     public void ButtonDown()
     {
-        GetOpEn().Op(EntityPredefined.EntityOpType.EOT_FORWARD, EntityPredefined.EntityExtOpType.EEOT_NONE);
+        GetOpEn().SetPreOpType(EntityPredefined.EntityOpType.EOT_FORWARD, EntityPredefined.EntityExtOpType.EEOT_NONE);
     }
     public void ButtonUp()
     {
-        GetOpEn().Op(EntityPredefined.EntityOpType.EOT_IDLE, EntityPredefined.EntityExtOpType.EEOT_NONE);
+        GetOpEn().SetPreOpType(EntityPredefined.EntityOpType.EOT_IDLE, EntityPredefined.EntityExtOpType.EEOT_NONE);
     }
 }
 #endif

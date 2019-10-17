@@ -21,7 +21,6 @@ public class Logic : MonoBehaviour
     {
         return m_instance;
     }
-    IFrameSyn m_frame_syn;
     public INetManager GetNetMng()
     {
         return m_network_mng;
@@ -49,13 +48,16 @@ public class Logic : MonoBehaviour
             Debug.LogError("fail to init network mng");
         }
         m_instance = this;
-        m_frame_syn = new CFrameSyn();
     }
     public IFrameSyn FrameSynLogic
     {
         get
         {
-            return m_frame_syn;
+            if (null != m_scene_mng)
+            {
+                return m_scene_mng.FrameSynLogic;
+            }
+            return null;
         }
     }
 #if _CLIENT_
@@ -83,7 +85,6 @@ public class Logic : MonoBehaviour
         SceneManager.LoadScene("Scenes/InGameScene");
 #endif
         m_scene_mng.Enter();
-        m_frame_syn.Enter();
     }
     public void LeaveGame()
     {
@@ -101,10 +102,7 @@ public class Logic : MonoBehaviour
             m_network_mng.Update();
         }
 #endif
-        if (null != m_frame_syn && m_frame_syn.IsWorking)
-        {
-            m_frame_syn.Update();
-        }
+        
         if (null != m_scene_mng && m_scene_mng.InScene)
         {
             m_scene_mng.Update();

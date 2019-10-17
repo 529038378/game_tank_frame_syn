@@ -82,6 +82,7 @@
     <Compile Include="Assets\Scripts\Shared\Net\INetManager.cs" />
     <Compile Include="Assets\Scripts\Shared\Net\NetworkPredefinedData.cs" />
     <Compile Include="Assets\Scripts\UI\ButtonBackward.cs" />
+    <Compile Include="Assets\Scripts\UI\ButtonFire.cs" />
     <Compile Include="Assets\Scripts\UI\ButtonForward.cs" />
     <Compile Include="Assets\Scripts\UI\ButtonLeft.cs" />
     <Compile Include="Assets\Scripts\UI\ButtonRight.cs" />

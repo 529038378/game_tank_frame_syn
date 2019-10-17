@@ -46,7 +46,7 @@ public override void Init()
             }
         }
         m_op_type = EntityPredefined.EntityOpType.EOT_IDLE;
-        m_pre_op_type = EntityPredefined.EntityOpType.EOT_IDLE;
+        m_record_op_type = EntityPredefined.EntityOpType.EOT_IDLE;
 
         MovStateSeqFrameNum = 0;
     }
@@ -55,10 +55,10 @@ public override void Init()
     Vector3 cur_pos;
 
     protected EntityPredefined.EntityOpType m_op_type;
-    protected EntityPredefined.EntityOpType m_pre_op_type;
+    protected EntityPredefined.EntityOpType m_record_op_type;
     protected EntityPredefined.EntityCampType m_camp_type;
     protected EntityPredefined.EntityExtOpType m_ext_op_type;
-    protected EntityPredefined.EntityExtOpType m_pre_ext_op_type;
+    protected EntityPredefined.EntityExtOpType m_record_ext_op_type;
     float acc_time;
     //const float fixed_time = 0.02f;
     void UpdatePosLerp(float delta_time)
@@ -109,11 +109,11 @@ public override void Init()
 #if !_CLIENT_
         return;
 #else
-        if (0 != (m_ext_op_type & EntityPredefined.EntityExtOpType.EEOT_FIRE))
+        if (m_ext_op_type.HasFlag(EntityPredefined.EntityExtOpType.EEOT_FIRE))
         {
             Fire();
+            m_ext_op_type &= ~EntityPredefined.EntityExtOpType.EEOT_FIRE;
         }
-        m_ext_op_type = m_pre_ext_op_type;
 #endif
     }
     void UpdateMovePos(float delta_time)
@@ -139,6 +139,7 @@ public override void Init()
         }
 
         base.Update(delta_time);
+        UpdateRotation();
         UpdateMovePos(delta_time);
         UpdateExtOp();
     }
@@ -153,7 +154,7 @@ public override void Init()
     void UpdateRotation()
     {
         //按照相机的左右来转向，而不是根据实体自己的
-        if (m_pre_op_type != m_op_type && ( m_pre_op_type >= EntityPredefined.EntityOpType.EOT_FORWARD && m_pre_op_type <= EntityPredefined.EntityOpType.EOT_RIGHT))
+        if (m_op_type >= EntityPredefined.EntityOpType.EOT_FORWARD && m_op_type <= EntityPredefined.EntityOpType.EOT_RIGHT)
         {
             GameObject cam = GameObject.Find(EntityPredefined.SceneCamera);
             if (null == cam)
@@ -166,7 +167,7 @@ public override void Init()
             Vector3 axis = new Vector3(0, 1, 0);
             Vector3 cam_xz_forward = VectorInPlane(cam_forward, axis);
             float delta_angle = 0.0f;
-            switch(m_pre_op_type)
+            switch(m_op_type)
             {
                 case EntityPredefined.EntityOpType.EOT_BACKWARD:
                 delta_angle = 180;
@@ -190,19 +191,27 @@ public override void Init()
     }
 
     public int MovStateSeqFrameNum = 0;
-    private int m_single_seq_begin_frame_index = 0;
     
+    public override void SetPreOpType(EntityPredefined.EntityOpType op_type, EntityPredefined.EntityExtOpType ext_op_type)
+    {
+        base.SetPreOpType(op_type, ext_op_type);
+        m_record_op_type = op_type;
+        m_record_ext_op_type ^= ext_op_type;
+    }
     public override void Op(EntityPredefined.EntityOpType op_type, EntityPredefined.EntityExtOpType ext_op_type)
     {
         base.Op(op_type, ext_op_type);
-        m_pre_op_type = op_type;
-        m_pre_ext_op_type |= ext_op_type;
+        m_op_type = op_type;
+        m_ext_op_type = ext_op_type;
+
+        //重置记录的附加动作
+        m_record_ext_op_type = EntityPredefined.EntityExtOpType.EEOT_NONE;
     }
     public override void ImplementCurFrameOpType()
     {
         UpdateRotation();
-        m_op_type = m_pre_op_type;
-        m_pre_ext_op_type = m_ext_op_type;
+        m_op_type = m_record_op_type;
+        m_record_ext_op_type = m_ext_op_type;
     }
     //     public override void RecordCurPos()
     //     {
@@ -210,9 +219,21 @@ public override void Init()
     //     }
     public override EntityPredefined.EntityOpType GetOpType()
     {
+#if _CLIENT_
+        return m_record_op_type;
+#else
         return m_op_type;
-    }
+#endif
 
+    }
+    public override EntityPredefined.EntityExtOpType GetExtOpType()
+    {
+#if _CLIENT_
+        return m_record_ext_op_type;
+#else
+        return m_ext_op_type;
+#endif
+    }
     public override void Destroy()
     {
         base.Destroy();

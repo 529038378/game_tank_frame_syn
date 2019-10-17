@@ -190,7 +190,7 @@ public class CClientReadyEvent : CEvent
     }
 }
 
-public class CSynOpEvent : CEvent
+public class CSynOpEvent : CEntityEvent
 {
     public CSynOpEvent()
         : base(EventPredefined.MsgType.EMT_SYN_ENTITY_OPS)
@@ -198,13 +198,10 @@ public class CSynOpEvent : CEvent
         RecordEnEvs = new List<IEvent>();
     }
 
-    public int FrameIndex { get; set; }
-    //key : en_id, value : event
     public List<IEvent> RecordEnEvs { get; set; }
     public override void Deserialize(NetworkReader reader)
     {
         base.Deserialize(reader);
-        FrameIndex = reader.ReadInt32();
 
         byte[] bytes = reader.ReadBytes((int)(reader.Length - reader.Position));
         NetworkReader imp_reader = new NetworkReader(bytes);
@@ -238,7 +235,6 @@ public class CSynOpEvent : CEvent
     public override void Serialize(NetworkWriter writer)
     {
         base.Serialize(writer);
-        writer.Write(FrameIndex);
         foreach (var ev in RecordEnEvs)
         {
             ev.Serialize(writer);

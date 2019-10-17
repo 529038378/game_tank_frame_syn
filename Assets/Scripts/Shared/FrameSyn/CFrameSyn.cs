@@ -9,7 +9,6 @@ public class CFrameSyn : IFrameSyn
         FrameIndex = 0;
         acc_time = 0;
         IsWorking = true;
-        FrameBeginTime = Time.time;
         FrameRatio = 0;
     }
 #if _CLIENT_
@@ -73,18 +72,14 @@ public class CFrameSyn : IFrameSyn
         acc_time += Time.deltaTime;
         while(acc_time > NetworkPredefinedData.frame_syn_gap)
         {
-            FrameBeginTime = Time.time;
-            Logic.Instance().GetSceneMng().ImplementCurFrameOpType();
-            //Logic.Instance().GetSceneMng().UpdateTankEnPostions();
             //FrameIndex的顺序这样是为了保证在两端实体创建帧跟同帧的操作帧不冲突
 #if _CLIENT_
-            FrameIndex++;
             ClientProcess();
 #else
             ServerProcess();
-            FrameIndex++;
 #endif
             acc_time -= NetworkPredefinedData.frame_syn_gap;
+            FrameIndex++;
         }
         FrameRatio = acc_time / NetworkPredefinedData.frame_syn_gap;
     }
@@ -112,13 +107,7 @@ public class CFrameSyn : IFrameSyn
         IsWorking = false;
         FrameIndex = 0;
         acc_time = 0;
-        FrameBeginTime = 0;
         FrameRatio = 0;
     }
 
-    public override float FrameBeginTime
-    {
-        get;
-        set;
-    }
 }
