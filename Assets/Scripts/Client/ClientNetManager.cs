@@ -98,10 +98,7 @@ public class ClientNetManager : INetManager
             return;
         }
         IEvent ev = ParseEvent(msg);
-        if(!m_callback.AddEntityEvent(ev))
-        {
-            m_callback.HandleEvent(ev);
-        }
+        m_callback.HandleEvent(ev);
     }
 }
 #endif

@@ -56,5 +56,4 @@ public class EntityPredefined
     public const string PlayerEnTag = "Player";
 
     public  static Vector3 BulletSwpanOffset = new Vector3(0, 1.6f, 1);
-    public const int accelerate_speed = 3;
 }

@@ -10,7 +10,6 @@ public abstract class ISceneMng
     public abstract void ImplementCurFrameOpType();
     public abstract Dictionary<int, IEntity> GetSceneEns();
     public abstract string GetNonLocalEn();
-    public abstract IFrameSyn FrameSynLogic { get; }
 #if _CLIENT_
     public abstract void HandleEvent(IEvent ev);
     public abstract void RecycleEn(IEntity en);

@@ -26,7 +26,7 @@ public class CEntity : IEntity
         GameObject.Destroy(m_en_obj);
     }
 
-    public override void SetPreOpType(EntityPredefined.EntityOpType op_type, EntityPredefined.EntityExtOpType ext_op_type)
+    public override void Op(EntityPredefined.EntityOpType op_type, EntityPredefined.EntityExtOpType ext_op_type)
     {
     }
     public override void ImplementCurFrameOpType()
@@ -44,8 +44,5 @@ public class CEntity : IEntity
     public override EntityPredefined.EntityExtOpType GetExtOpType()
     {
         return EntityPredefined.EntityExtOpType.EEOT_NONE;
-    }
-    public override void Op(EntityPredefined.EntityOpType op_type, EntityPredefined.EntityExtOpType ext_op_type)
-    {
     }
 }

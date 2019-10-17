@@ -6,7 +6,6 @@ public class BulletEntity : CEntity
 {
     public BulletEntity(Vector3 origin_pos, Vector3 forward_dir)
     {
-        Init();
         if(null == m_en_obj)
         {
             return;

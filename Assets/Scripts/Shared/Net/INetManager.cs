@@ -26,6 +26,5 @@ public interface INetManagerCallback
     void HandleEvent(IEvent msg, int conn_id);
 #else
     void HandleEvent(IEvent msg);
-    bool AddEntityEvent(IEvent ev);
 #endif
 }
