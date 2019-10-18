@@ -8,17 +8,24 @@ public class CFrameSyn : IFrameSyn
     {
         FrameIndex = 0;
         acc_time = 0;
-        IsWorking = true;
         FrameBeginTime = Time.time;
         FrameRatio = 0;
+        m_scene_mng = Logic.Instance().GetSceneMng() as CSceneMng;
+#if !_CLIENT_
+        IsWorking = true;
+#endif
     }
 #if _CLIENT_
-    
+    CSceneMng m_scene_mng;
     void ClientProcess()
     {
         //把PlayerEn的操作同步到服务器端
         if (null != m_player_en)
         {
+//             Debug.Log(" sysn frame index : " + FrameIndex.ToString()
+//                 + " en id : " + m_player_en.EnId.ToString()
+//                 + " op type : " + m_player_en.GetOpType().ToString()
+//                 + " ext op type : " + m_player_en.GetExtOpType().ToString());
             Logic.Instance().GetNetMng().Send((short) EventPredefined.MsgType.EMT_ENTITY_OP, new COpEvent(FrameIndex, m_player_en.EnId, m_player_en.GetOpType(), m_player_en.GetExtOpType()));
         }
     }
@@ -26,13 +33,27 @@ public class CFrameSyn : IFrameSyn
     void ServerProcess()
     {
         //给其他客户端同步实体事件
-        Dictionary<int, List<IEvent>> record_evs = Logic.Instance().GetSceneMng().GetRecordEvs();
+        Dictionary<int, Dictionary<int, IEvent>> record_evs = Logic.Instance().GetSceneMng().GetRecordEvs();
         CSynOpEvent ev = new CSynOpEvent();
-        if (record_evs.ContainsKey(Logic.Instance().FrameSynLogic.FrameIndex))
+        if (record_evs.ContainsKey(FrameIndex))
         {
+            Dictionary<int, IEvent> dic_evs = record_evs[FrameIndex];
             //存在对应的操作类型
             ev.FrameIndex = FrameIndex;
-            ev.RecordEnEvs = record_evs[Logic.Instance().FrameSynLogic.FrameIndex];
+            foreach (var en in Logic.Instance().GetSceneMng().GetSceneEns())
+            {
+                int id = (int) en.Key;
+                if (dic_evs.ContainsKey(id))
+                {
+                    ev.RecordEnEvs.Add(dic_evs[id]);
+                }
+                else
+                {
+                    IEntity cen = en.Value as IEntity;
+                    IEvent op_ev = new COpEvent(FrameIndex, id, cen.GetOpType(), cen.GetExtOpType());
+                    ev.RecordEnEvs.Add(op_ev);
+                }
+            }
             foreach (var ree in ev.RecordEnEvs)
             {
                 COpEvent oe = ree as COpEvent;
@@ -68,13 +89,13 @@ public class CFrameSyn : IFrameSyn
 #endif
 
     float acc_time = 0;
-    public override void Update()
+    public override bool Update()
     {
+        bool enter_new_logic_frame = false;
         acc_time += Time.deltaTime;
         while(acc_time > NetworkPredefinedData.frame_syn_gap)
         {
             FrameBeginTime = Time.time;
-            Logic.Instance().GetSceneMng().ImplementCurFrameOpType();
             //Logic.Instance().GetSceneMng().UpdateTankEnPostions();
             //FrameIndex的顺序这样是为了保证在两端实体创建帧跟同帧的操作帧不冲突
 #if _CLIENT_
@@ -85,8 +106,11 @@ public class CFrameSyn : IFrameSyn
             FrameIndex++;
 #endif
             acc_time -= NetworkPredefinedData.frame_syn_gap;
+            enter_new_logic_frame = true;
         }
+
         FrameRatio = acc_time / NetworkPredefinedData.frame_syn_gap;
+        return enter_new_logic_frame;
     }
 
     IEntity m_player_en;
@@ -94,7 +118,8 @@ public class CFrameSyn : IFrameSyn
     public override void ActivePlayerEn(int frame_begin_index)
     {
         m_player_en = Logic.Instance().GetOpEn();
-        FrameIndex = frame_begin_index;
+        FrameIndex = frame_begin_index+NetworkPredefinedData.frame_client_syn_pre_offset;
+        IsWorking = true;
     }
     
 #endif

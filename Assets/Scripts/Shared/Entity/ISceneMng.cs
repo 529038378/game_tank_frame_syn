@@ -10,13 +10,14 @@ public abstract class ISceneMng
     public abstract void ImplementCurFrameOpType();
     public abstract Dictionary<int, IEntity> GetSceneEns();
     public abstract string GetNonLocalEn();
+    public abstract IFrameSyn FrameSynLogic { get; }
 #if _CLIENT_
     public abstract void HandleEvent(IEvent ev);
     public abstract void RecycleEn(IEntity en);
     public abstract void CreateBullet(Vector3 pos, Vector3 forward);
 #else
     public abstract void HandleEvent(IEvent ev, int conn_id);
-    public abstract Dictionary<int, List<IEvent>> GetRecordEvs();
+    public abstract Dictionary<int, Dictionary<int,IEvent>> GetRecordEvs();
 #endif
     public abstract void Update();
 }

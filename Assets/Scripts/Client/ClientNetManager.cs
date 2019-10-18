@@ -90,7 +90,6 @@ public class ClientNetManager : INetManager
         msg.ReadMessage<MessageBase>(ev);
         return ev;
     }
-
     public void HandleMsg(NetworkMessage msg)
     {
         if (null == m_callback)
@@ -98,7 +97,10 @@ public class ClientNetManager : INetManager
             return;
         }
         IEvent ev = ParseEvent(msg);
-        m_callback.HandleEvent(ev);
+        if (!m_callback.AddEntityEv(ev))
+        {
+            m_callback.HandleEvent(ev);
+        }
     }
 }
 #endif

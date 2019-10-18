@@ -16,7 +16,7 @@ public class ServerNetManager : INetManager
             }
         }
 
-        if (null == m_server && m_server.connections.Count > 0)
+        if (null == m_server && avil_conn > 0)
         {
             return;
         }
@@ -199,7 +199,10 @@ public class ServerNetManager : INetManager
             //短线重连的处理
         }
        IEvent ev = ParseEvent(msg);
-        m_callback.HandleEvent(ev, conn_id);
+        if (!m_callback.AddEntityEv(ev))
+        {
+            m_callback.HandleEvent(ev, conn_id);
+        }
     }
     Dictionary<int, NetworkConnection> m_dic_en_conn;
     //return : false - 断线重连，true - 原来链接

@@ -27,4 +27,5 @@ public interface INetManagerCallback
 #else
     void HandleEvent(IEvent msg);
 #endif
+    bool AddEntityEv(IEvent ev);
 }

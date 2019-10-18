@@ -46,7 +46,7 @@ public override void Init()
             }
         }
         m_op_type = EntityPredefined.EntityOpType.EOT_IDLE;
-        m_pre_op_type = EntityPredefined.EntityOpType.EOT_IDLE;
+        m_record_op_type = EntityPredefined.EntityOpType.EOT_IDLE;
 
         MovStateSeqFrameNum = 0;
     }
@@ -55,10 +55,12 @@ public override void Init()
     Vector3 cur_pos;
 
     protected EntityPredefined.EntityOpType m_op_type;
+    protected EntityPredefined.EntityOpType m_record_op_type;
     protected EntityPredefined.EntityOpType m_pre_op_type;
+    protected EntityPredefined.EntityExtOpType m_pre_ext_op_type;
     protected EntityPredefined.EntityCampType m_camp_type;
     protected EntityPredefined.EntityExtOpType m_ext_op_type;
-    protected EntityPredefined.EntityExtOpType m_pre_ext_op_type;
+    protected EntityPredefined.EntityExtOpType m_record_ext_op_type;
     float acc_time;
     //const float fixed_time = 0.02f;
     void UpdatePosLerp(float delta_time)
@@ -90,6 +92,13 @@ public override void Init()
         //创建一个子弹
         Logic.Instance().GetSceneMng().CreateBullet(m_en_obj.transform.position, m_en_obj.transform.forward);
     }
+    public override void ResetOpType()
+    {
+        return;
+        base.ResetOpType();
+        m_record_ext_op_type = m_ext_op_type;
+        m_record_op_type = m_op_type;
+    }
 #endif
     public override GameObject GetObj()
     {
@@ -113,7 +122,6 @@ public override void Init()
         {
             Fire();
         }
-        m_ext_op_type = m_pre_ext_op_type;
 #endif
     }
     void UpdateMovePos(float delta_time)
@@ -153,7 +161,7 @@ public override void Init()
     void UpdateRotation()
     {
         //按照相机的左右来转向，而不是根据实体自己的
-        if (m_pre_op_type != m_op_type && ( m_pre_op_type >= EntityPredefined.EntityOpType.EOT_FORWARD && m_pre_op_type <= EntityPredefined.EntityOpType.EOT_RIGHT))
+        if (m_op_type >= EntityPredefined.EntityOpType.EOT_FORWARD && m_op_type <= EntityPredefined.EntityOpType.EOT_RIGHT)
         {
             GameObject cam = GameObject.Find(EntityPredefined.SceneCamera);
             if (null == cam)
@@ -166,7 +174,7 @@ public override void Init()
             Vector3 axis = new Vector3(0, 1, 0);
             Vector3 cam_xz_forward = VectorInPlane(cam_forward, axis);
             float delta_angle = 0.0f;
-            switch(m_pre_op_type)
+            switch(m_op_type)
             {
                 case EntityPredefined.EntityOpType.EOT_BACKWARD:
                 delta_angle = 180;
@@ -192,17 +200,26 @@ public override void Init()
     public int MovStateSeqFrameNum = 0;
     private int m_single_seq_begin_frame_index = 0;
     
-    public override void Op(EntityPredefined.EntityOpType op_type, EntityPredefined.EntityExtOpType ext_op_type)
+    public override void Op(EntityPredefined.EntityOpType op_type, EntityPredefined.EntityExtOpType ext_op_type, bool record = true)
     {
         base.Op(op_type, ext_op_type);
-        m_pre_op_type = op_type;
-        m_pre_ext_op_type |= ext_op_type;
+        if(record)
+        {
+            m_record_op_type = op_type;
+            m_record_ext_op_type ^= ext_op_type;
+        }
+        else
+        {
+            m_pre_op_type = op_type;
+            m_pre_ext_op_type ^= ext_op_type;
+        }
+        
     }
     public override void ImplementCurFrameOpType()
     {
         UpdateRotation();
         m_op_type = m_pre_op_type;
-        m_pre_ext_op_type = m_ext_op_type;
+        m_ext_op_type = m_pre_ext_op_type;
     }
     //     public override void RecordCurPos()
     //     {
@@ -210,9 +227,12 @@ public override void Init()
     //     }
     public override EntityPredefined.EntityOpType GetOpType()
     {
-        return m_op_type;
+        return m_record_op_type;
     }
-
+    public override EntityPredefined.EntityExtOpType GetExtOpType()
+    {
+        return m_record_ext_op_type;
+    }
     public override void Destroy()
     {
         base.Destroy();
