@@ -27,12 +27,14 @@ public class BulletEntity : CEntity
                 Debug.Log("Fail to create tank");
             }
         }
+        InDestroy = false;
     }
 
     float acc_time = 0;
+    bool InDestroy = false;
     public override void Update(int delta_time)
     {
-        if (null == m_en_obj)
+        if (null == m_en_obj || InDestroy)
         {
             return;
         }
@@ -42,6 +44,7 @@ public class BulletEntity : CEntity
         if (CheckHit())
         {
             Logic.Instance().GetSceneMng().RecycleEn(this);
+            InDestroy = true;
             return;
         }
 
@@ -50,6 +53,7 @@ public class BulletEntity : CEntity
         if (m_en_obj.transform.position.y < 0)
         {
             Logic.Instance().GetSceneMng().RecycleEn(this);
+            InDestroy = true;
         }
     }
 

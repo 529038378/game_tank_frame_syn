@@ -457,6 +457,14 @@ public class CSceneMng : ISceneMng, INetManagerCallback
                 continue;
             }
             en.Destroy();
+            if (m_dic_ens.ContainsKey(en.EnId))
+            {
+                m_dic_ens.Remove(en.EnId);
+            }
+            else if (m_dic_bullet_ens.ContainsKey(en.EnId))
+            {
+                m_dic_bullet_ens.Remove(en.EnId);
+            }
         }
         m_recyle_ens.Clear();
         m_acc_time_in_one_logic_frame += EntityPredefined.render_update_gap;
