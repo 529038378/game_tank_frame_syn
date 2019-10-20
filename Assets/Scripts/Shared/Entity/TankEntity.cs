@@ -77,7 +77,7 @@ public override void Init()
         //         float ratio = (acc_time % fixed_time) / fixed_time;
         //          m_en_obj.transform.position = Vector3.Lerp(cur_pos, target_pos, ratio);
         //该用步进的方式
-        m_en_obj.transform.position += m_en_obj.transform.forward * delta_time * EntityPredefined.tank_speed;
+        m_en_obj.transform.position += m_en_obj.transform.forward * delta_time / 1000 * EntityPredefined.tank_speed;
         MovStateSeqFrameNum++;
         //m_en_obj.transform.position = Vector3.Lerp(cur_pos, target_pos, Logic.Instance().FrameSynLogic.FrameRatio);
         //Debug.Log(" Cur_Pos : " + m_en_obj.transform.position.ToString()
@@ -94,10 +94,14 @@ public override void Init()
     }
     public override void ResetOpType()
     {
-        return;
         base.ResetOpType();
-        m_record_ext_op_type = m_ext_op_type;
-        m_record_op_type = m_op_type;
+        m_record_ext_op_type = EntityPredefined.EntityExtOpType.EEOT_NONE;
+    }
+    public override void DestoryImm()
+    {
+        base.DestoryImm();
+        GameObject.Destroy(m_en_obj);
+        m_en_obj = null;
     }
 #endif
     public override GameObject GetObj()
@@ -118,10 +122,11 @@ public override void Init()
 #if !_CLIENT_
         return;
 #else
-        if (0 != (m_ext_op_type & EntityPredefined.EntityExtOpType.EEOT_FIRE))
+        if (m_ext_op_type.HasFlag(EntityPredefined.EntityExtOpType.EEOT_FIRE))
         {
             Fire();
         }
+        m_ext_op_type = EntityPredefined.EntityExtOpType.EEOT_NONE;
 #endif
     }
     void UpdateMovePos(float delta_time)
@@ -132,6 +137,8 @@ public override void Init()
             //StopMoveImm();
             break;
             case EntityPredefined.EntityOpType.EOT_FORWARD:
+            UpdatePosLerp(delta_time);
+            break;
             case EntityPredefined.EntityOpType.EOT_BACKWARD:
             case EntityPredefined.EntityOpType.EOT_LEFT:
             case EntityPredefined.EntityOpType.EOT_RIGHT:
@@ -139,8 +146,11 @@ public override void Init()
             break;
         }
     }
-    public override void Update(float delta_time)
+    public override void Update(int delta_time)
     {
+#if !_CLIENT_
+        return;
+#endif
         if (null == GetObj())
         {
             return;
@@ -149,6 +159,11 @@ public override void Init()
         base.Update(delta_time);
         UpdateMovePos(delta_time);
         UpdateExtOp();
+        CSceneMng scene_mng = Logic.Instance().GetSceneMng() as CSceneMng;
+//         Debug.Log(" en id : " + EnId.ToString()
+//             + " frame index : " + Logic.Instance().FrameSynLogic.FrameIndex.ToString()
+//             + " in Acceleration : " + scene_mng.NeedAccelerate.ToString()
+//             + " op type : " + m_op_type.ToString());
     }
 
     Vector3 VectorInPlane(Vector3 vec, Vector3 plane_normal)
@@ -211,15 +226,19 @@ public override void Init()
         else
         {
             m_pre_op_type = op_type;
-            m_pre_ext_op_type ^= ext_op_type;
+            m_pre_ext_op_type = ext_op_type;
+            Debug.Log(" frame id : " + Logic.Instance().FrameSynLogic.FrameIndex.ToString()
+                + " en id : " + EnId.ToString()
+                + " op type : " + m_pre_op_type.ToString()
+                + " ext op type : " + m_pre_ext_op_type.ToString());
         }
-        
+       
     }
     public override void ImplementCurFrameOpType()
     {
-        UpdateRotation();
         m_op_type = m_pre_op_type;
         m_ext_op_type = m_pre_ext_op_type;
+        UpdateRotation();
     }
     //     public override void RecordCurPos()
     //     {
@@ -243,4 +262,6 @@ public override void Init()
         }
 #endif
     }
+   
+
 }

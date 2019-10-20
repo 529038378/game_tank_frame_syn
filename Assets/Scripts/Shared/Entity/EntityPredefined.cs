@@ -52,9 +52,9 @@ public class EntityPredefined
     public const string TankPrefabPath = "Prefabs/Tank";
     public const string BulletPrefabPath
         = "Prefabs/Shell";
-    public const float render_update_gap = 0.01f;
+    public const int render_update_gap = 20;
     public const string PlayerEnTag = "Player";
 
-    public  static Vector3 BulletSwpanOffset = new Vector3(0, 1.6f, 1);
+    public  static Vector3 BulletSwpanOffset = new Vector3(0, 1.6f, 0);
     public const int AccTime = 3;
 }

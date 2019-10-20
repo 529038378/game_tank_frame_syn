@@ -6,7 +6,9 @@ public class BulletEntity : CEntity
 {
     public BulletEntity(Vector3 origin_pos, Vector3 forward_dir)
     {
-        if(null == m_en_obj)
+        Init();
+
+        if (null == m_en_obj)
         {
             return;
         }
@@ -28,7 +30,7 @@ public class BulletEntity : CEntity
     }
 
     float acc_time = 0;
-    public override void Update(float delta_time)
+    public override void Update(int delta_time)
     {
         if (null == m_en_obj)
         {
@@ -43,7 +45,7 @@ public class BulletEntity : CEntity
             return;
         }
 
-        m_en_obj.transform.position += EntityPredefined.bullet_speed * delta_time * m_en_obj.transform.forward;
+        m_en_obj.transform.position += EntityPredefined.bullet_speed * delta_time / 1000 * m_en_obj.transform.forward;
 
         if (m_en_obj.transform.position.y < 0)
         {
@@ -74,6 +76,15 @@ public class BulletEntity : CEntity
             }
         }
         return hit;
+    }
+    public override void Destroy()
+    {
+        base.Destroy();
+        DestoryImm();
+    }
+    public override void DestoryImm()
+    {
+        base.DestoryImm();
     }
 }
 #endif

@@ -8,25 +8,24 @@ public class CFrameSyn : IFrameSyn
     {
         FrameIndex = 0;
         acc_time = 0;
-        FrameBeginTime = Time.time;
+        FrameBeginAccTime = 0;
         FrameRatio = 0;
-        m_scene_mng = Logic.Instance().GetSceneMng() as CSceneMng;
 #if !_CLIENT_
         IsWorking = true;
 #endif
     }
 #if _CLIENT_
-    CSceneMng m_scene_mng;
     void ClientProcess()
     {
         //把PlayerEn的操作同步到服务器端
         if (null != m_player_en)
         {
-//             Debug.Log(" sysn frame index : " + FrameIndex.ToString()
-//                 + " en id : " + m_player_en.EnId.ToString()
-//                 + " op type : " + m_player_en.GetOpType().ToString()
-//                 + " ext op type : " + m_player_en.GetExtOpType().ToString());
+//              Debug.Log(" sysn frame index : " + FrameIndex.ToString()
+//                  + " en id : " + m_player_en.EnId.ToString()
+//                  + " op type : " + m_player_en.GetOpType().ToString()
+//                  + " ext op type : " + m_player_en.GetExtOpType().ToString());
             Logic.Instance().GetNetMng().Send((short) EventPredefined.MsgType.EMT_ENTITY_OP, new COpEvent(FrameIndex, m_player_en.EnId, m_player_en.GetOpType(), m_player_en.GetExtOpType()));
+            m_player_en.ResetOpType();
         }
     }
 #else
@@ -88,14 +87,13 @@ public class CFrameSyn : IFrameSyn
     }
 #endif
 
-    float acc_time = 0;
+    int acc_time = 0;
     public override bool Update()
     {
         bool enter_new_logic_frame = false;
-        acc_time += Time.deltaTime;
+        acc_time +=(int) (Time.deltaTime * 1000);
         while(acc_time > NetworkPredefinedData.frame_syn_gap)
         {
-            FrameBeginTime = Time.time;
             //Logic.Instance().GetSceneMng().UpdateTankEnPostions();
             //FrameIndex的顺序这样是为了保证在两端实体创建帧跟同帧的操作帧不冲突
 #if _CLIENT_
@@ -107,9 +105,10 @@ public class CFrameSyn : IFrameSyn
 #endif
             acc_time -= NetworkPredefinedData.frame_syn_gap;
             enter_new_logic_frame = true;
-        }
 
-        FrameRatio = acc_time / NetworkPredefinedData.frame_syn_gap;
+        }
+        FrameBeginAccTime = acc_time;
+        FrameRatio = acc_time * 1.0f / NetworkPredefinedData.frame_syn_gap;
         return enter_new_logic_frame;
     }
 
@@ -137,11 +136,11 @@ public class CFrameSyn : IFrameSyn
         IsWorking = false;
         FrameIndex = 0;
         acc_time = 0;
-        FrameBeginTime = 0;
+        FrameBeginAccTime = 0;
         FrameRatio = 0;
     }
 
-    public override float FrameBeginTime
+    public override int FrameBeginAccTime
     {
         get;
         set;

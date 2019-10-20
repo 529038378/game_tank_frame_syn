@@ -16,14 +16,13 @@ public class CEntity : IEntity
 
     }
 
-    public override void Update(float delta_time)
+    public override void Update(int delta_time)
     {
         
     }
 
     public override void Destroy()
     {
-        GameObject.Destroy(m_en_obj);
     }
 
     public override void Op(EntityPredefined.EntityOpType op_type, EntityPredefined.EntityExtOpType ext_op_type, bool record = true)
@@ -48,6 +47,10 @@ public class CEntity : IEntity
 #if _CLIENT_
     public override void ResetOpType()
     {
+    }
+    public override void DestoryImm()
+    {
+        GameObject.Destroy(m_en_obj);
     }
 #endif
 }

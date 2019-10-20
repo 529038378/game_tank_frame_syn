@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Networking;
+using System.Linq;
 
 public class CSceneMng : ISceneMng, INetManagerCallback
 #if _CILENT_
@@ -46,10 +47,11 @@ public class CSceneMng : ISceneMng, INetManagerCallback
         m_dic_ens.Clear();
         m_recyle_ens.Clear();
         m_frame_syn.Enter();
-
+        
 #if _CLIENT_
         Logic.Instance().NotifyClientReady();
         m_acc_time = 0;
+        m_acc_time_in_one_logic_frame = 0;
         m_collider_en_map.Clear();
         m_dic_bullet_ens.Clear();
 #else
@@ -85,6 +87,8 @@ public class CSceneMng : ISceneMng, INetManagerCallback
         m_acc_time = 0;
         m_collider_en_map.Clear();
         m_dic_bullet_ens.Clear();
+        m_acc_time_in_one_logic_frame = 0;
+
 #else
         m_ready_player_count = 0;
         m_record_evs.Clear();
@@ -187,9 +191,11 @@ public class CSceneMng : ISceneMng, INetManagerCallback
         }
         IEntity en = m_dic_ens[cde.EnId];
         m_dic_ens.Remove(cde.EnId);
-        en.Destroy();
 #if !_CLIENT_
         --m_ready_player_count;
+        en.Destroy();
+#else
+        en.DestoryImm();
 #endif
     }
 
@@ -225,6 +231,7 @@ public class CSceneMng : ISceneMng, INetManagerCallback
                 m_record_evs.Add(re.FrameIndex, dic_ev);
             }
         }
+        m_record_evs = m_record_evs.OrderBy(o => o.Key).ToDictionary(o=>o.Key, p=>p.Value);
     }
     public override Dictionary<int, Dictionary<int,IEvent>> GetRecordEvs()
     {
@@ -346,7 +353,7 @@ public class CSceneMng : ISceneMng, INetManagerCallback
             IEvent ee = pair as IEvent;
             HandleEntityEvent(ee);
         }
-        Debug.Log(" server frame index : " + soe.FrameIndex.ToString() + ", local frame index : " + Logic.Instance().FrameSynLogic.FrameIndex.ToString());
+        /*Debug.Log(" server frame index : " + soe.FrameIndex.ToString() + ", local frame index : " + Logic.Instance().FrameSynLogic.FrameIndex.ToString());*/
     }
     public override void HandleEvent(IEvent ev)
     {
@@ -400,7 +407,8 @@ public class CSceneMng : ISceneMng, INetManagerCallback
         }
     }
 #endif
-    float m_acc_time;
+    int m_acc_time;
+    int m_acc_time_in_one_logic_frame;
     IFrameSyn m_frame_syn;
     void StepUpdateEnRender()
     {
@@ -434,9 +442,10 @@ public class CSceneMng : ISceneMng, INetManagerCallback
             en.Destroy();
         }
         m_recyle_ens.Clear();
+        m_acc_time_in_one_logic_frame += EntityPredefined.render_update_gap;
     }
 #if _CLIENT_
-    bool NeedAccelerate { get; set; }
+    public bool NeedAccelerate { get; set; }
     int ProcessOneLogicFrameEv()
     {
         IDictionaryEnumerator itr = m_dic_evs.GetEnumerator();
@@ -459,22 +468,32 @@ public class CSceneMng : ISceneMng, INetManagerCallback
     void AcceOneLogicFrameRender()
     {
         float acc_render_time = NetworkPredefinedData.frame_syn_gap;
-        while(acc_render_time > EntityPredefined.render_update_gap)
+        while(acc_render_time - EntityPredefined.render_update_gap > -0.000001)
         {
             StepUpdateEnRender();
             acc_render_time -= EntityPredefined.render_update_gap;
         }
     }
     
+    void CheckLastFrameLeftMovePos()
+    {
+        while((NetworkPredefinedData.frame_syn_gap - m_acc_time_in_one_logic_frame) > 0.000001 && m_acc_time_in_one_logic_frame >= EntityPredefined.render_update_gap)
+        {
+            StepUpdateEnRender();
+            m_acc_time_in_one_logic_frame += EntityPredefined.render_update_gap;
+        }
+    }
+
     void NormalUpdate()
     {
         if(m_just_enter_new_logic_frame)
         {
             ProcessOneLogicFrameEv();
             ImplementCurFrameOpType();
+            m_acc_time = FrameSynLogic.FrameBeginAccTime;
         }
-        m_acc_time += Time.deltaTime;
-        while (m_acc_time > EntityPredefined.render_update_gap)
+        m_acc_time +=(int) (Time.deltaTime * 1000);
+        while (m_acc_time - EntityPredefined.render_update_gap > 0.000001)
         {
             StepUpdateEnRender();
             m_acc_time -= EntityPredefined.render_update_gap;
@@ -509,12 +528,12 @@ public class CSceneMng : ISceneMng, INetManagerCallback
                 }
             }
 
-            m_acc_time += Time.deltaTime;
-            while (m_acc_time > EntityPredefined.render_update_gap)
-            {
-                StepUpdateEnRender();
-                m_acc_time -= EntityPredefined.render_update_gap;
-            }
+//             m_acc_time +=(int) (Time.deltaTime * 1000);
+//             while (m_acc_time > EntityPredefined.render_update_gap)
+//             {
+//                 StepUpdateEnRender();
+//                 m_acc_time -= EntityPredefined.render_update_gap;
+//             }
         }
     }
     public bool AddEntityEv(IEvent ev)
@@ -532,6 +551,12 @@ public class CSceneMng : ISceneMng, INetManagerCallback
     public override void Update()
     {
 #if _CLIENT_
+        if(m_just_enter_new_logic_frame)
+        {
+            CheckLastFrameLeftMovePos();
+            m_acc_time_in_one_logic_frame = FrameSynLogic.FrameBeginAccTime;
+        }
+
         if (NeedAccelerate)
         {
             int after_acce_frame_index = AccelerateUpdate();
@@ -541,6 +566,7 @@ public class CSceneMng : ISceneMng, INetManagerCallback
                 //加速完毕，重新对齐一下frameindex
                 FrameSynLogic.FrameIndex = after_acce_frame_index + NetworkPredefinedData.frame_client_syn_pre_offset;
             }
+            m_acc_time_in_one_logic_frame = 0;
         }
         else
         {
@@ -663,10 +689,13 @@ public class CSceneMng : ISceneMng, INetManagerCallback
             list_evs.Add(ev);
             m_dic_evs.Add(cee.FrameIndex, list_evs);
         }
+        m_dic_evs = m_dic_evs.OrderBy(o=>o.Key).ToDictionary(o => o.Key, p => p.Value);
         if (!FrameSynLogic.IsWorking)
         {
             FrameSynLogic.IsWorking = true;
+            m_just_enter_new_logic_frame = true;
         }
+
         return true;
     }
    
