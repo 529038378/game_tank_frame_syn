@@ -28,8 +28,7 @@ public class TankEntity : CEntity
             pos = EntityPredefined.spwan_pos1;
             break;
         }
-        cur_pos = pos;
-        target_pos = pos;
+        m_en_obj.transform.position = pos;
     }
 #if _CLIENT_
     bool m_is_local;

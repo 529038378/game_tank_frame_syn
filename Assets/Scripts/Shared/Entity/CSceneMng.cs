@@ -5,7 +5,7 @@ using UnityEngine.Networking;
 using System.Linq;
 
 public class CSceneMng : ISceneMng, INetManagerCallback
-#if _CILENT_
+#if _CLIENT_
     , IColliderCallback
 #endif
 {
@@ -22,7 +22,7 @@ public class CSceneMng : ISceneMng, INetManagerCallback
         m_collider_en_map = new Dictionary<Collider, IEntity>();
         m_dic_bullet_ens = new Dictionary<int, IEntity>();
         m_frame_syn = new CFrameSyn();
-        
+
 
     }
     bool m_is_scene;
@@ -47,7 +47,7 @@ public class CSceneMng : ISceneMng, INetManagerCallback
         m_dic_ens.Clear();
         m_recyle_ens.Clear();
         m_frame_syn.Enter();
-        
+
 #if _CLIENT_
         Logic.Instance().NotifyClientReady();
         m_acc_time = 0;
@@ -65,7 +65,7 @@ public class CSceneMng : ISceneMng, INetManagerCallback
         m_is_scene = false;
         if (null != m_dic_ens)
         {
-            foreach(var pair in m_dic_ens)
+            foreach (var pair in m_dic_ens)
             {
                 if (null != pair.Value)
                 {
@@ -78,7 +78,7 @@ public class CSceneMng : ISceneMng, INetManagerCallback
         {
             m_recyle_ens.Clear();
         }
-        if (null != Logic.Instance() 
+        if (null != Logic.Instance()
             && null != Logic.Instance().FrameSynLogic)
         {
             Logic.Instance().FrameSynLogic.Leave();
@@ -142,10 +142,10 @@ public class CSceneMng : ISceneMng, INetManagerCallback
             return;
         }
         IEntity en = null;
-        switch(cce.EnType)
+        switch (cce.EnType)
         {
             case EntityPredefined.EntityType.EET_TANK:
-            en = new TankEntity(cce.EnId, cce.IsLocal, cce.CampType, cce.SpwanPosIndex);  
+            en = new TankEntity(cce.EnId, cce.IsLocal, cce.CampType, cce.SpwanPosIndex);
             break;
         }
         m_dic_ens.Add(cce.EnId, en);
@@ -180,12 +180,15 @@ public class CSceneMng : ISceneMng, INetManagerCallback
     //摧毁实体
     void DestoryOp(IEvent ev)
     {
+#if !_CLIENT_
+        return;
+#endif
         CDestoryEvent cde = ev as CDestoryEvent;
         if (null == cde)
         {
             return;
         }
-        if(!m_dic_ens.ContainsKey(cde.EnId))
+        if (!m_dic_ens.ContainsKey(cde.EnId))
         {
             return;
         }
@@ -202,7 +205,21 @@ public class CSceneMng : ISceneMng, INetManagerCallback
 
 #if !_CLIENT_
     //key : frame_index, value : (key :  en_id , value : CRecordEventS)
-    volatile Dictionary<int, Dictionary<int,IEvent>> m_record_evs;
+    volatile Dictionary<int, Dictionary<int, IEvent>> m_record_evs;
+    bool NeedReplaceEv(IEvent old_ev, IEvent new_ev)
+    {
+        bool res = true;
+        if((short)EventPredefined.EntityEventType.ET_DESTROY == (short)new_ev.GetEventType())
+        {
+            res = true;
+        }
+        else if ((short)EventPredefined.EntityEventType.ET_DESTROY == (short)old_ev.GetEventType())
+        {
+            res = false;
+        }
+        
+        return res;
+    }
     void RecordEv(IEvent ev)
     {
         CEntityEvent re = ev as CEntityEvent;
@@ -215,7 +232,7 @@ public class CSceneMng : ISceneMng, INetManagerCallback
             if (m_record_evs.ContainsKey(re.FrameIndex))
             {
                 Dictionary<int,IEvent> en_dic = m_record_evs[re.FrameIndex];
-                if (en_dic.ContainsKey(re.EnId))
+                if (en_dic.ContainsKey(re.EnId) && NeedReplaceEv(en_dic[re.EnId], ev))
                 {
                     en_dic[re.EnId] = re;
                 }
@@ -251,11 +268,11 @@ public class CSceneMng : ISceneMng, INetManagerCallback
             case EventPredefined.EntityEventType.ET_CREATE:
             CreateEn(ev);
             break;
-            case EventPredefined.EntityEventType.ET_OP:
-            EnOp(ev);
-            break;
             case EventPredefined.EntityEventType.ET_DESTROY:
             DestoryOp(ev);
+            break;
+            case EventPredefined.EntityEventType.ET_OP:
+            EnOp(ev);
             break;
             default:
             Debug.Assert(false);
@@ -648,7 +665,7 @@ public class CSceneMng : ISceneMng, INetManagerCallback
 #if _CLIENT_
     public void OnCollision(Collider coll)
     {
-        if(m_collider_en_map.ContainsKey(coll))
+        if(!m_collider_en_map.ContainsKey(coll))
         {
             return;
         }

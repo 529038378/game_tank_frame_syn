@@ -55,15 +55,13 @@ public class CFrameSyn : IFrameSyn
             }
             foreach (var ree in ev.RecordEnEvs)
             {
-                COpEvent oe = ree as COpEvent;
+                CDestoryEvent oe = ree as CDestoryEvent;
                 if (null == oe)
                 {
                     continue;
                 }
-                if (EntityPredefined.EntityOpType.EOT_IDLE != oe.OpType)
-                {
-                    Debug.Log(" frame index : " + oe.FrameIndex.ToString() + " op type : " + oe.OpType.ToString());
-                }
+               
+                Debug.Log(" frame index : " + oe.FrameIndex.ToString() + " op type : " + oe.EnId.ToString());
             }
            
         }

@@ -160,7 +160,7 @@ public class CDestoryEvent : CEntityEvent
 
     }
     public CDestoryEvent(int frame_index, int en_id)
-        : base(frame_index, en_id, EventPredefined.MsgType.EMT_ENTITY_OP)
+        : base(frame_index, en_id, EventPredefined.MsgType.EMT_ENTITY_DESTROY)
     {
         m_en_et = EventPredefined.EntityEventType.ET_DESTROY;
     }
