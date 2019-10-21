@@ -77,7 +77,6 @@ public override void Init()
         //          m_en_obj.transform.position = Vector3.Lerp(cur_pos, target_pos, ratio);
         //该用步进的方式
         m_en_obj.transform.position += m_en_obj.transform.forward * delta_time / 1000 * EntityPredefined.tank_speed;
-        MovStateSeqFrameNum++;
         //m_en_obj.transform.position = Vector3.Lerp(cur_pos, target_pos, Logic.Instance().FrameSynLogic.FrameRatio);
         //Debug.Log(" Cur_Pos : " + m_en_obj.transform.position.ToString()
         //             + " target_pos : " + target_pos.ToString()
@@ -101,6 +100,15 @@ public override void Init()
         base.DestoryImm();
         GameObject.Destroy(m_en_obj);
         m_en_obj = null;
+    }
+
+    public EntityPredefined.EntityOpType GetEntityOpType()
+    {
+        return m_op_type;
+    }
+    public EntityPredefined.EntityExtOpType GetEntityExtOpType()
+    {
+        return m_ext_op_type;
     }
 #endif
     public override GameObject GetObj()
@@ -136,12 +144,11 @@ public override void Init()
             //StopMoveImm();
             break;
             case EntityPredefined.EntityOpType.EOT_FORWARD:
-            UpdatePosLerp(delta_time);
-            break;
             case EntityPredefined.EntityOpType.EOT_BACKWARD:
             case EntityPredefined.EntityOpType.EOT_LEFT:
             case EntityPredefined.EntityOpType.EOT_RIGHT:
             UpdatePosLerp(delta_time);
+            MovStateSeqFrameNum = Logic.Instance().FrameSynLogic.FrameIndex;
             break;
         }
     }
@@ -226,10 +233,10 @@ public override void Init()
         {
             m_pre_op_type = op_type;
             m_pre_ext_op_type = ext_op_type;
-            Debug.Log(" frame id : " + Logic.Instance().FrameSynLogic.FrameIndex.ToString()
-                + " en id : " + EnId.ToString()
-                + " op type : " + m_pre_op_type.ToString()
-                + " ext op type : " + m_pre_ext_op_type.ToString());
+//             Debug.Log(" frame id : " + Logic.Instance().FrameSynLogic.FrameIndex.ToString()
+//                 + " en id : " + EnId.ToString()
+//                 + " op type : " + m_pre_op_type.ToString()
+//                 + " ext op type : " + m_pre_ext_op_type.ToString());
         }
        
     }

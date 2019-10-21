@@ -57,4 +57,18 @@ public class EntityPredefined
 
     public  static Vector3 BulletSwpanOffset = new Vector3(0, 1.6f, 0);
     public const int AccTime = 3;
+
+    public struct EntitySnapShot
+    {
+        public int EnId;
+        public Vector3 Pos;
+        public EntityOpType OpType;
+        public EntityExtOpType ExtOpType;
+    }
+    public struct EntityPreSnapShot
+    {
+        public int EnId;
+        public EntityOpType OpType;
+        public EntityExtOpType ExtOpType;
+    }
 }

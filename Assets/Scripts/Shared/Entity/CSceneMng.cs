@@ -16,6 +16,8 @@ public class CSceneMng : ISceneMng, INetManagerCallback
         m_record_evs = new Dictionary<int, Dictionary<int, IEvent>>();
 #else
         m_dic_evs = new Dictionary<int, List<IEvent>>();
+        m_frameindex_pre_snapshot = new Dictionary<int, List<EntityPredefined.EntityPreSnapShot>>();
+        m_frameindex_snapshot = new Dictionary<int, List<EntityPredefined.EntitySnapShot>>();
 #endif
         m_dic_ens = new Dictionary<int, IEntity>();
         m_recyle_ens = new Dictionary<int, IEntity>();
@@ -363,7 +365,7 @@ public class CSceneMng : ISceneMng, INetManagerCallback
             return;
         }
 
-        //帧操作校验,todo 
+        CheckOpEvent(ev);
         //同步其他的实体操作
         foreach (var pair in soe.RecordEnEvs)
         {
@@ -485,13 +487,52 @@ public class CSceneMng : ISceneMng, INetManagerCallback
         }
         int key =(int) itr.Key;
         m_dic_evs.Remove(key);
+        Debug.Log(" frame index change : " + key.ToString());
         return key;
     }
 
-   
-
     void AcceOneLogicFrameRender()
     {
+        foreach (var pair in m_dic_ens)
+        {
+            IEntity en = pair.Value as IEntity;
+            if (null == en)
+            {
+                continue;
+            }
+            en.Update(NetworkPredefinedData.frame_syn_gap);
+        }
+
+        foreach (var pair in m_dic_bullet_ens)
+        {
+            IEntity en = pair.Value as IEntity;
+            if (null == en)
+            {
+                continue;
+            }
+            en.Update(NetworkPredefinedData.frame_syn_gap);
+        }
+
+        foreach (var pair in m_recyle_ens)
+        {
+            IEntity en = pair.Value as IEntity;
+            if (null == en)
+            {
+                continue;
+            }
+            en.Destroy();
+            if (m_dic_ens.ContainsKey(en.EnId))
+            {
+                m_dic_ens.Remove(en.EnId);
+            }
+            else if (m_dic_bullet_ens.ContainsKey(en.EnId))
+            {
+                m_dic_bullet_ens.Remove(en.EnId);
+            }
+        }
+        m_recyle_ens.Clear();
+        m_acc_time_in_one_logic_frame += NetworkPredefinedData.frame_syn_gap;
+        return;
         float acc_render_time = NetworkPredefinedData.frame_syn_gap;
         while(acc_render_time - EntityPredefined.render_update_gap > -0.000001)
         {
@@ -511,14 +552,19 @@ public class CSceneMng : ISceneMng, INetManagerCallback
 
     void NormalUpdate()
     {
-        if(m_just_enter_new_logic_frame)
+        if (m_just_enter_new_logic_frame)
         {
-            ProcessOneLogicFrameEv();
+            int frame_index = ProcessOneLogicFrameEv();
             ImplementCurFrameOpType();
             m_acc_time = FrameSynLogic.FrameBeginAccTime;
+            //没有收到服务器的同步消息，已经开始预测活动了
+            if (-1 == frame_index)
+            {
+                RecordPreSnapShot();
+            }
         }
         m_acc_time +=(int) (Time.deltaTime * 1000);
-        while (m_acc_time - EntityPredefined.render_update_gap > 0.000001)
+        while ((m_acc_time - EntityPredefined.render_update_gap > 0.000001) && (NetworkPredefinedData.frame_syn_gap - m_acc_time_in_one_logic_frame > -0.000001 ))
         {
             StepUpdateEnRender();
             m_acc_time -= EntityPredefined.render_update_gap;
@@ -537,10 +583,99 @@ public class CSceneMng : ISceneMng, INetManagerCallback
         }
         return res_frame_index;
     }
+    //记录按照预测行动的快照
+    Dictionary<int, List<EntityPredefined.EntityPreSnapShot>> m_frameindex_pre_snapshot;//有多个pair，但都是连续的
+    void RecordPreSnapShot()
+    {
+        List<EntityPredefined.EntityPreSnapShot> list = new List<EntityPredefined.EntityPreSnapShot>();
+        foreach (var en in m_dic_ens)
+        {
+            TankEntity te = en.Value as TankEntity;
+            if (null == te)
+            {
+                continue;
+            }
+            EntityPredefined.EntityPreSnapShot ss = new EntityPredefined.EntityPreSnapShot();
+            ss.EnId = te.EnId;
+            ss.OpType = te.GetEntityOpType();
+            ss.ExtOpType = te.GetEntityExtOpType();
+            list.Add(ss);
+        }
+        m_frameindex_pre_snapshot.Add(FrameSynLogic.FrameIndex, list);
+    }
+
+    //记录一帧开始前的快照
+    Dictionary<int, List<EntityPredefined.EntitySnapShot>> m_frameindex_snapshot;//其实只有一个pair，index只记录上一次最后的一次快照
+    void RecordSnapShot()
+    {
+        m_frameindex_snapshot.Clear();
+        List<EntityPredefined.EntitySnapShot> list = new List<EntityPredefined.EntitySnapShot>();
+        foreach (var en in m_dic_ens)
+        {
+            TankEntity te = en.Value as TankEntity;
+            if (null == te)
+            {
+                continue;
+            }
+            EntityPredefined.EntitySnapShot ss = new EntityPredefined.EntitySnapShot();
+            ss.EnId = te.EnId;
+            ss.OpType = te.GetEntityOpType();
+            ss.ExtOpType = te.GetEntityExtOpType();
+            ss.Pos = te.GetObj().transform.position;
+            list.Add(ss);
+        }
+        m_frameindex_snapshot.Add(FrameSynLogic.FrameIndex, list);
+    }
+    void ResetToSnapShot()
+    {
+        if(m_frameindex_snapshot.Count <= 0)
+        {
+            return;
+        }
+        IDictionaryEnumerator itr = m_frameindex_snapshot.GetEnumerator();
+        if(itr.MoveNext())
+        {
+            List<EntityPredefined.EntitySnapShot> list_evs = itr.Value as List<EntityPredefined.EntitySnapShot>;
+            foreach(var ev in list_evs)
+            {
+                if (m_dic_ens.ContainsKey(ev.EnId))
+                {
+                    TankEntity te = m_dic_ens[ev.EnId] as TankEntity;
+                    if (null == te)
+                    {
+                        continue;
+                    }
+                    te.GetObj().transform.position = ev.Pos;
+                    te.Op(ev.OpType, ev.ExtOpType, false);
+                }
+            }
+        }
+        ImplementCurFrameOpType();
+    }
+    void CheckOpEvent(IEvent ev)
+    {
+        CEntityEvent cee = ev as CEntityEvent;
+        if(null == cee)
+        {
+            return;
+        }
+        if(m_frameindex_pre_snapshot.ContainsKey(cee.FrameIndex))
+        {
+            //需要回滚的状态
+            if (m_frameindex_snapshot.ContainsKey(cee.FrameIndex))
+            {
+                ResetToSnapShot();
+            }
+        }
+    }
 #else
     object RecordEvsLock = new object();
     void NormalUpdateServer()
     {
+        if (!m_just_enter_new_logic_frame)
+        {
+            return;
+        }
         if (m_record_evs.ContainsKey(FrameSynLogic.FrameIndex))
         {
             lock(RecordEvsLock)
@@ -580,6 +715,7 @@ public class CSceneMng : ISceneMng, INetManagerCallback
         {
             CheckLastFrameLeftMovePos();
             m_acc_time_in_one_logic_frame = FrameSynLogic.FrameBeginAccTime;
+            RecordSnapShot();
         }
 
         if (NeedAccelerate)
@@ -591,7 +727,7 @@ public class CSceneMng : ISceneMng, INetManagerCallback
                 //加速完毕，重新对齐一下frameindex
                 FrameSynLogic.FrameIndex = after_acce_frame_index + NetworkPredefinedData.frame_client_syn_pre_offset;
             }
-            m_acc_time_in_one_logic_frame = 0;
+            m_acc_time_in_one_logic_frame = NetworkPredefinedData.frame_syn_gap;
         }
         else
         {
@@ -600,6 +736,8 @@ public class CSceneMng : ISceneMng, INetManagerCallback
 #else
         NormalUpdateServer();
 #endif
+
+        //在每一帧处理完了之后加个快照，每次ProcessOneLogicFrameEv的时候判断一下当前帧的操作跟之前预测的操作是否一样，不一样的话，需要1、读取快照2、重置到快照的位置3、然后进行后续的ProcessOneLogicFrameEv和StepUpdateEnRender等操作。然后记录快照，快照的操作和预测的操作都只用维护一帧的数据就行，就是处理上一次服务器发过来的数据处理之后的状态，可以共用一个结构。
         m_just_enter_new_logic_frame = false;
         if (null != m_frame_syn && m_frame_syn.IsWorking)
         {
