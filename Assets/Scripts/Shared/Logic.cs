@@ -25,10 +25,14 @@ public class Logic : MonoBehaviour
     {
         return m_network_mng;
     }
-
+    public IReplayMng GetReplayMng()
+    {
+        return m_replay_mng;
+    }
     // Start is called before the first frame update
     INetManager m_network_mng = null;
     ISceneMng m_scene_mng = null;
+    IReplayMng m_replay_mng = null; 
     void Start()
     {
         DontDestroyOnLoad(this);
@@ -48,6 +52,7 @@ public class Logic : MonoBehaviour
             Debug.LogError("fail to init network mng");
         }
         m_instance = this;
+        m_replay_mng = new CReplayMng();
     }
     public IFrameSyn FrameSynLogic
     {
@@ -70,7 +75,11 @@ public class Logic : MonoBehaviour
     {
         m_network_mng.Send((short)EventPredefined.MsgType.EMT_CLIENT_READY, new CClientReadyEvent());
     }
-     public void QuitGame()
+    public void NotifyClientQuit()
+    {
+        m_network_mng.Send((short) EventPredefined.MsgType.EMT_CLIENT_LEAVE_INGAME, new CClientLeaveInGameEvent());
+    }
+    public void QuitGame()
     {
 #if UNITY_EDITOR
         UnityEditor.EditorApplication.isPlaying = false;
@@ -103,11 +112,14 @@ public class Logic : MonoBehaviour
         }
 #endif
        
-        if (null != m_scene_mng && m_scene_mng.InScene)
+        if (null != m_scene_mng && m_scene_mng.InScene && !m_replay_mng.IsInReplay)
         {
             m_scene_mng.Update();
         }
-       
+        if (null != m_replay_mng && m_replay_mng.IsInReplay)
+        {
+            m_replay_mng.Update();
+        }
     }
 
     private void OnDestroy()

@@ -86,7 +86,7 @@ public class CFrameSyn : IFrameSyn
 #endif
 
     int acc_time = 0;
-    public override bool Update()
+    public override bool Update(bool syns_to_server = true)
     {
         bool enter_new_logic_frame = false;
         acc_time +=(int) (Time.deltaTime * 1000);
@@ -96,7 +96,10 @@ public class CFrameSyn : IFrameSyn
             //FrameIndex的顺序这样是为了保证在两端实体创建帧跟同帧的操作帧不冲突
 #if _CLIENT_
             FrameIndex++;
-            ClientProcess();
+            if (syns_to_server)
+            {
+                ClientProcess();
+            }
 #else
             ServerProcess();
             FrameIndex++;

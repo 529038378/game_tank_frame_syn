@@ -59,6 +59,8 @@ public class ServerNetManager : INetManager
         m_server.RegisterHandler((short) EventPredefined.MsgType.EMT_CLIENT_READY, HandleMsg);
         m_server.RegisterHandler((short) EventPredefined
             .MsgType.EMT_QUIT_GAME, OnQuitInGame);
+        m_server.RegisterHandler((short) EventPredefined
+            .MsgType.EMT_CLIENT_LEAVE_INGAME, HandleMsg);
         if (m_server.Listen(NetworkPredefinedData.port))
         {
             Debug.Log("开始监听");
@@ -180,6 +182,9 @@ public class ServerNetManager : INetManager
             break;
             case (short) EventPredefined.MsgType.EMT_CLIENT_READY:
             ev = new CClientReadyEvent();
+            break;
+            case (short) EventPredefined.MsgType.EMT_CLIENT_LEAVE_INGAME:
+            ev = new CClientLeaveInGameEvent();
             break;
         }
         msg.ReadMessage<MessageBase>(ev);

@@ -15,6 +15,7 @@ public abstract class ISceneMng
     public abstract void HandleEvent(IEvent ev);
     public abstract void RecycleEn(IEntity en);
     public abstract void CreateBullet(Vector3 pos, Vector3 forward);
+    public abstract void UpdateReplay(bool accelerate);
 #else
     public abstract void HandleEvent(IEvent ev, int conn_id);
     public abstract Dictionary<int, Dictionary<int,IEvent>> GetRecordEvs();

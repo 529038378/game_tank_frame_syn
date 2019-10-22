@@ -51,7 +51,11 @@ public class CSceneMng : ISceneMng, INetManagerCallback
         m_frame_syn.Enter();
 
 #if _CLIENT_
-        Logic.Instance().NotifyClientReady();
+        if (!Logic.Instance().GetReplayMng().IsInReplay)
+        {
+            Logic.Instance().NotifyClientReady();
+            Logic.Instance().GetReplayMng().Enter();
+        }
         m_acc_time = 0;
         m_acc_time_in_one_logic_frame = 0;
         m_collider_en_map.Clear();
@@ -132,7 +136,27 @@ public class CSceneMng : ISceneMng, INetManagerCallback
         }
         m_collider_en_map.Add(coll, en);
     }
-
+    public override void UpdateReplay(bool accelerate)
+    {
+        if (m_just_enter_new_logic_frame)
+        {
+            CheckLastFrameLeftMovePos();
+            m_acc_time_in_one_logic_frame = FrameSynLogic.FrameBeginAccTime;
+        }
+        if (accelerate)
+        {
+            AccelerateUpdate();
+            m_acc_time_in_one_logic_frame = NetworkPredefinedData.frame_syn_gap;
+        }
+        else
+        {
+            NormalUpdate();
+        }
+        if (FrameSynLogic.Update(false))
+        {
+            m_just_enter_new_logic_frame = true;
+        }
+    }
 #endif
     //碰撞检测维护的表
     Dictionary<Collider, IEntity> m_collider_en_map;
@@ -348,6 +372,22 @@ public class CSceneMng : ISceneMng, INetManagerCallback
             ServerEnterInGame();
         }
     }
+    void PlayerLeaveInGame(IEvent ev, int en_id)
+    {
+        CClientLeaveInGameEvent cclige = ev as CClientLeaveInGameEvent;
+        if(null == cclige)
+        {
+            return;
+        }
+        if (m_dic_ens.ContainsKey(en_id))
+        {
+            m_dic_ens.Remove(en_id);
+        }
+        if(0 == m_dic_ens.Count)
+        {
+            Logic.Instance().LeaveGame();
+        }
+    }
 #endif
 
 #if _CLIENT_
@@ -373,6 +413,21 @@ public class CSceneMng : ISceneMng, INetManagerCallback
             HandleEntityEvent(ee);
         }
         /*Debug.Log(" server frame index : " + soe.FrameIndex.ToString() + ", local frame index : " + Logic.Instance().FrameSynLogic.FrameIndex.ToString());*/
+    }
+    void RecordToReplay(IEvent ev)
+    {
+        if (Logic.Instance().GetReplayMng().IsInReplay)
+        {
+            return;
+        }
+
+        CEntityEvent cee = ev as CEntityEvent;
+        if (null == cee)
+        {
+            return;
+        }
+
+        Logic.Instance().GetReplayMng().Record(cee.FrameIndex, cee);
     }
     public override void HandleEvent(IEvent ev)
     {
@@ -418,6 +473,9 @@ public class CSceneMng : ISceneMng, INetManagerCallback
             break;
             case EventPredefined.MsgType.EMT_CLIENT_READY:
             WaitForAllClintReady(ev);
+            break;
+            case EventPredefined.MsgType.EMT_CLIENT_LEAVE_INGAME:
+            PlayerLeaveInGame(ev, en_id);
             break;
             default:
             Debug.Log("wrong event type");
@@ -858,7 +916,7 @@ public class CSceneMng : ISceneMng, INetManagerCallback
             FrameSynLogic.IsWorking = true;
             m_just_enter_new_logic_frame = true;
         }
-
+        RecordToReplay(ev);
         return true;
     }
    

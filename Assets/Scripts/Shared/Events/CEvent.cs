@@ -190,6 +190,14 @@ public class CClientReadyEvent : CEvent
     }
 }
 
+public class CClientLeaveInGameEvent : CEvent
+{
+    public CClientLeaveInGameEvent()
+    {
+        m_ev_type = EventPredefined.MsgType.EMT_CLIENT_LEAVE_INGAME;
+    }
+}
+
 public class CSynOpEvent : CEntityEvent
 {
     public CSynOpEvent()

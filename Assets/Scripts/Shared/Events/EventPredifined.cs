@@ -8,6 +8,7 @@ public class EventPredefined
     {
         EMT_ENTITY_CHANGE_SCENE = 100, 
         EMT_CLIENT_READY,
+        EMT_CLIENT_LEAVE_INGAME,
         EMT_ENTER_GAME,
         EMT_QUIT_GAME,
         EMT_ENTITY_CREATE,

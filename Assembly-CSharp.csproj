@@ -64,7 +64,9 @@
     <Compile Include="Assets\Scripts\Client\CameraTest.cs" />
     <Compile Include="Assets\Scripts\Client\ClientNetManager.cs" />
     <Compile Include="Assets\Scripts\Client\Collider\ICollidCallback.cs" />
+    <Compile Include="Assets\Scripts\Client\CReplayMng.cs" />
     <Compile Include="Assets\Scripts\Client\InGameFollowCamera.cs" />
+    <Compile Include="Assets\Scripts\Client\IReplayMng.cs" />
     <Compile Include="Assets\Scripts\Server\ServerNetManager.cs" />
     <Compile Include="Assets\Scripts\Shared\Entity\BulletEntity.cs" />
     <Compile Include="Assets\Scripts\Shared\Entity\CEntity.cs" />
@@ -85,6 +87,8 @@
     <Compile Include="Assets\Scripts\UI\ButtonFire.cs" />
     <Compile Include="Assets\Scripts\UI\ButtonForward.cs" />
     <Compile Include="Assets\Scripts\UI\ButtonLeft.cs" />
+    <Compile Include="Assets\Scripts\UI\ButtonReplay.cs" />
+    <Compile Include="Assets\Scripts\UI\ButtonReturn.cs" />
     <Compile Include="Assets\Scripts\UI\ButtonRight.cs" />
     <Compile Include="Assets\Scripts\UI\EnterGame.cs" />
     <Compile Include="Assets\Scripts\UI\InGameState.cs" />
