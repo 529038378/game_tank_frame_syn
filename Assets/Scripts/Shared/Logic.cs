@@ -2,9 +2,13 @@
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.SceneManagement;
+using UnityEngine.Events;
 
 public class Logic : MonoBehaviour
 {
+    private void Start()
+    {
+    }
 #if _CLIENT_
     IEntity m_op_en = null;
     public IEntity GetOpEn()
@@ -30,13 +34,19 @@ public class Logic : MonoBehaviour
         return m_replay_mng;
     }
     // Start is called before the first frame update
-    INetManager m_network_mng = null;
+    static INetManager m_network_mng = null;
     ISceneMng m_scene_mng = null;
-    IReplayMng m_replay_mng = null; 
-    void Start()
+    IReplayMng m_replay_mng = null;
+    bool m_has_start = false;
+    void Awake()
     {
-        DontDestroyOnLoad(this);
+        if(m_has_start)
+        {
+            return;
+        }
+        m_has_start = true;
         m_scene_mng = new CSceneMng();
+        DontDestroyOnLoad(this);
         INetManagerCallback net_callback = m_scene_mng as CSceneMng;
 #if _CLIENT_
         m_network_mng = new ClientNetManager(net_callback);
@@ -53,7 +63,13 @@ public class Logic : MonoBehaviour
         }
         m_instance = this;
         m_replay_mng = new CReplayMng();
+
+        m_entry_cam = GameObject.Find("Main Camera");
+        m_ingame_cam = GameObject.Find("InGameFollowCamera");
+        SceneManager.sceneUnloaded += OnInGameSceneUnload;
     }
+    GameObject m_entry_cam;
+    GameObject m_ingame_cam;
     public IFrameSyn FrameSynLogic
     {
         get
@@ -88,10 +104,46 @@ public class Logic : MonoBehaviour
 #endif
     }
 #endif
+    Scene m_in_game_scene;
+    Scene m_entry_scene;
+    void OnInGameSceneUnload(Scene cur_scene)
+    {
+        
+    }
+    void ChangeToInGameScene()
+    {
+        if(!m_in_game_scene.isLoaded)
+        {
+            m_in_game_scene = SceneManager.LoadScene("Scenes/InGameScene", new LoadSceneParameters(LoadSceneMode.Additive));
+        }
+        else
+        {
+            SceneManager.SetActiveScene(m_in_game_scene);
+        }
+        if(m_entry_cam)
+        {
+            m_entry_cam.SetActive(false);
+        }
+    }
+    void ChangeToEntryScene()
+    {
+        if (m_in_game_scene.isLoaded)
+        {
+            if (!SceneManager.UnloadScene(m_in_game_scene))
+            {
+                Debug.Log(" fail to unload scene ");
+            }
+        }
+        //相机切换
+        if (m_entry_cam)
+        {
+            m_entry_cam.SetActive(true);
+        }
+    }
     public void EnterInGame()
     {
 #if _CLIENT_
-        SceneManager.LoadScene("Scenes/InGameScene");
+        ChangeToInGameScene();
 #endif
         m_scene_mng.Enter();
     }
@@ -99,7 +151,8 @@ public class Logic : MonoBehaviour
     {
         m_scene_mng.Leave();
 #if _CLIENT_
-        SceneManager.LoadScene("Scenes/EntryScene");
+        NotifyClientQuit();
+        ChangeToEntryScene();
 #endif
     }
     // Update is called once per frame
@@ -120,6 +173,8 @@ public class Logic : MonoBehaviour
         {
             m_replay_mng.Update();
         }
+
+        Debug.Log(" cur loaded scene count : " + SceneManager.sceneCount);
     }
 
     private void OnDestroy()

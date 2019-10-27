@@ -4,7 +4,7 @@ using UnityEngine;
 
 public abstract class IFrameSyn 
 {
-    public abstract bool Update(bool syns_to_server = false);
+    public abstract bool Update(bool syns_to_server = true);
     public abstract int FrameIndex { get; set; }
     public abstract void Enter();
     public abstract void Leave();

@@ -412,7 +412,7 @@ public class CSceneMng : ISceneMng, INetManagerCallback
             IEvent ee = pair as IEvent;
             HandleEntityEvent(ee);
         }
-        /*Debug.Log(" server frame index : " + soe.FrameIndex.ToString() + ", local frame index : " + Logic.Instance().FrameSynLogic.FrameIndex.ToString());*/
+        //Debug.Log(" server frame index : " + soe.FrameIndex.ToString() + ", local frame index : " + Logic.Instance().FrameSynLogic.FrameIndex.ToString());
     }
     void RecordToReplay(IEvent ev)
     {
@@ -545,7 +545,7 @@ public class CSceneMng : ISceneMng, INetManagerCallback
         }
         int key =(int) itr.Key;
         m_dic_evs.Remove(key);
-        Debug.Log(" frame index change : " + key.ToString());
+        //Debug.Log(" frame index change : " + key.ToString());
         return key;
     }
 
@@ -900,6 +900,7 @@ public class CSceneMng : ISceneMng, INetManagerCallback
         {
             return false;
         }
+        CSynOpEvent csoe = cee as CSynOpEvent;
         if (m_dic_evs.ContainsKey(cee.FrameIndex))
         {
             m_dic_evs[cee.FrameIndex].Add(cee);
