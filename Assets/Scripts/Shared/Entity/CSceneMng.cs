@@ -75,7 +75,7 @@ public class CSceneMng : ISceneMng, INetManagerCallback
             {
                 if (null != pair.Value)
                 {
-                    pair.Value.Destroy();
+                    pair.Value.DestoryImm();
                 }
             }
             m_dic_ens.Clear();
@@ -94,7 +94,7 @@ public class CSceneMng : ISceneMng, INetManagerCallback
         m_collider_en_map.Clear();
         m_dic_bullet_ens.Clear();
         m_acc_time_in_one_logic_frame = 0;
-
+        m_frameindex_pre_snapshot.Clear();
 #else
         m_ready_player_count = 0;
         m_record_evs.Clear();
@@ -601,7 +601,7 @@ public class CSceneMng : ISceneMng, INetManagerCallback
     
     void CheckLastFrameLeftMovePos()
     {
-        while((NetworkPredefinedData.frame_syn_gap - m_acc_time_in_one_logic_frame) > 0.000001 && m_acc_time_in_one_logic_frame >= EntityPredefined.render_update_gap)
+        while(NetworkPredefinedData.frame_syn_gap > m_acc_time_in_one_logic_frame)
         {
             StepUpdateEnRender();
             m_acc_time_in_one_logic_frame += EntityPredefined.render_update_gap;
@@ -622,24 +622,32 @@ public class CSceneMng : ISceneMng, INetManagerCallback
             }
         }
         m_acc_time +=(int) (Time.deltaTime * 1000);
-        while ((m_acc_time - EntityPredefined.render_update_gap > 0.000001) && (NetworkPredefinedData.frame_syn_gap - m_acc_time_in_one_logic_frame > -0.000001 ))
+        while ((m_acc_time - EntityPredefined.render_update_gap > 0.000001) && (NetworkPredefinedData.frame_syn_gap > m_acc_time_in_one_logic_frame))
         {
             StepUpdateEnRender();
             m_acc_time -= EntityPredefined.render_update_gap;
         }
     }
-    int AccelerateUpdate()
+    AccUpdateRes AccelerateUpdate()
     {
-        int left_times = 0;// EntityPredefined.AccTime;
-        int res_frame_index = 0;
-        while(left_times < m_dic_evs.Count && left_times < EntityPredefined.AccTime)
+        lock(m_dic_evs_lock)
         {
-            res_frame_index = ProcessOneLogicFrameEv();
-            ImplementCurFrameOpType();
-            AcceOneLogicFrameRender();
-            ++left_times;
+            AccUpdateRes res = new AccUpdateRes();
+            int left_times = 0;// EntityPredefined.AccTime;
+            while (left_times < m_dic_evs.Count && left_times < EntityPredefined.AccTime)
+            {
+                res.m_cur_acc_frame = ProcessOneLogicFrameEv();
+                if (-1 == res.m_cur_acc_frame)
+                {
+                    break;
+                }
+                ImplementCurFrameOpType();
+                AcceOneLogicFrameRender();
+                ++left_times;
+            }
+            res.m_left_frame_acc_count = m_dic_evs.Count;
+            return res;
         }
-        return res_frame_index;
     }
     //记录按照预测行动的快照
     Dictionary<int, List<EntityPredefined.EntityPreSnapShot>> m_frameindex_pre_snapshot;//有多个pair，但都是连续的
@@ -712,6 +720,7 @@ public class CSceneMng : ISceneMng, INetManagerCallback
     }
     void CheckOpEvent(IEvent ev)
     {
+        return;
         CEntityEvent cee = ev as CEntityEvent;
         if(null == cee)
         {
@@ -766,24 +775,29 @@ public class CSceneMng : ISceneMng, INetManagerCallback
     }
 #endif
     bool m_just_enter_new_logic_frame = false;
+    struct AccUpdateRes
+    {
+        public int m_cur_acc_frame;
+        public int m_left_frame_acc_count;
+    }
     public override void Update()
     {
 #if _CLIENT_
         if(m_just_enter_new_logic_frame)
         {
             CheckLastFrameLeftMovePos();
-            m_acc_time_in_one_logic_frame = FrameSynLogic.FrameBeginAccTime;
+            m_acc_time_in_one_logic_frame = 0;
             RecordSnapShot();
         }
 
         if (NeedAccelerate)
         {
-            int after_acce_frame_index = AccelerateUpdate();
-            NeedAccelerate = m_dic_evs.Count > 1;
-            if (!NeedAccelerate && -1 != after_acce_frame_index)
+            AccUpdateRes acc_update_res = AccelerateUpdate();
+            NeedAccelerate = acc_update_res.m_left_frame_acc_count > 1;
+            if (!NeedAccelerate && -1 != acc_update_res.m_cur_acc_frame)
             {
                 //加速完毕，重新对齐一下frameindex
-                FrameSynLogic.FrameIndex = after_acce_frame_index + NetworkPredefinedData.frame_client_syn_pre_offset;
+                FrameSynLogic.FrameIndex = acc_update_res.m_cur_acc_frame + NetworkPredefinedData.frame_client_syn_pre_offset;
             }
             m_acc_time_in_one_logic_frame = NetworkPredefinedData.frame_syn_gap;
         }
@@ -892,33 +906,38 @@ public class CSceneMng : ISceneMng, INetManagerCallback
         IEntity en = new BulletEntity(bullet_swpan_pos, forward);
         m_dic_bullet_ens.Add(en.GetHashCode(), en);
     }
+    object m_dic_evs_lock = new object();
     volatile Dictionary<int, List<IEvent>> m_dic_evs;
     public bool AddEntityEv(IEvent ev)
     {
-        CEntityEvent cee = ev as CEntityEvent;
-        if (null == cee)
+        lock(m_dic_evs_lock)
         {
-            return false;
+            CEntityEvent cee = ev as CEntityEvent;
+            if (null == cee)
+            {
+                return false;
+            }
+            CSynOpEvent csoe = cee as CSynOpEvent;
+            if (m_dic_evs.ContainsKey(cee.FrameIndex))
+            {
+                m_dic_evs[cee.FrameIndex].Add(cee);
+            }
+            else
+            {
+                List<IEvent> list_evs = new List<IEvent>();
+                list_evs.Add(ev);
+                m_dic_evs.Add(cee.FrameIndex, list_evs);
+            }
+            m_dic_evs = m_dic_evs.OrderBy(o => o.Key).ToDictionary(o => o.Key, p => p.Value);
+            if (!FrameSynLogic.IsWorking)
+            {
+                FrameSynLogic.IsWorking = true;
+                m_just_enter_new_logic_frame = true;
+            }
+            RecordToReplay(ev);
+            return true;
         }
-        CSynOpEvent csoe = cee as CSynOpEvent;
-        if (m_dic_evs.ContainsKey(cee.FrameIndex))
-        {
-            m_dic_evs[cee.FrameIndex].Add(cee);
-        }
-        else
-        {
-            List<IEvent> list_evs = new List<IEvent>();
-            list_evs.Add(ev);
-            m_dic_evs.Add(cee.FrameIndex, list_evs);
-        }
-        m_dic_evs = m_dic_evs.OrderBy(o=>o.Key).ToDictionary(o => o.Key, p => p.Value);
-        if (!FrameSynLogic.IsWorking)
-        {
-            FrameSynLogic.IsWorking = true;
-            m_just_enter_new_logic_frame = true;
-        }
-        RecordToReplay(ev);
-        return true;
+       
     }
    
 #endif

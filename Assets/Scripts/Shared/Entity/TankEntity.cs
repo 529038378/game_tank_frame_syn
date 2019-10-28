@@ -77,6 +77,14 @@ public override void Init()
         //          m_en_obj.transform.position = Vector3.Lerp(cur_pos, target_pos, ratio);
         //该用步进的方式
         m_en_obj.transform.position += m_en_obj.transform.forward * delta_time / 1000 * EntityPredefined.tank_speed;
+        if(null != Logic.Instance().GetSceneMng())
+        {
+            CSceneMng scene_mng = Logic.Instance().GetSceneMng() as CSceneMng;
+            if(scene_mng.NeedAccelerate)
+            {
+                ++MovStateSeqFrameNum;
+            }
+        }
         //m_en_obj.transform.position = Vector3.Lerp(cur_pos, target_pos, Logic.Instance().FrameSynLogic.FrameRatio);
         //Debug.Log(" Cur_Pos : " + m_en_obj.transform.position.ToString()
         //             + " target_pos : " + target_pos.ToString()
@@ -148,7 +156,6 @@ public override void Init()
             case EntityPredefined.EntityOpType.EOT_LEFT:
             case EntityPredefined.EntityOpType.EOT_RIGHT:
             UpdatePosLerp(delta_time);
-            MovStateSeqFrameNum = Logic.Instance().FrameSynLogic.FrameIndex;
             break;
         }
     }
