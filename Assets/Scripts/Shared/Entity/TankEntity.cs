@@ -80,10 +80,12 @@ public override void Init()
         if(null != Logic.Instance().GetSceneMng())
         {
             CSceneMng scene_mng = Logic.Instance().GetSceneMng() as CSceneMng;
+#if _CLIENT_
             if(scene_mng.NeedAccelerate)
             {
                 ++MovStateSeqFrameNum;
             }
+#endif
         }
         //m_en_obj.transform.position = Vector3.Lerp(cur_pos, target_pos, Logic.Instance().FrameSynLogic.FrameRatio);
         //Debug.Log(" Cur_Pos : " + m_en_obj.transform.position.ToString()
@@ -240,10 +242,10 @@ public override void Init()
         {
             m_pre_op_type = op_type;
             m_pre_ext_op_type = ext_op_type;
-//             Debug.Log(" frame id : " + Logic.Instance().FrameSynLogic.FrameIndex.ToString()
-//                 + " en id : " + EnId.ToString()
-//                 + " op type : " + m_pre_op_type.ToString()
-//                 + " ext op type : " + m_pre_ext_op_type.ToString());
+            //             Debug.Log(" frame id : " + Logic.Instance().FrameSynLogic.FrameIndex.ToString()
+            //                 + " en id : " + EnId.ToString()
+            //                 + " op type : " + m_pre_op_type.ToString()
+            //                 + " ext op type : " + m_pre_ext_op_type.ToString());
         }
        
     }

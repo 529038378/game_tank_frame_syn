@@ -13,5 +13,7 @@ public abstract class IFrameSyn
     public abstract int FrameBeginAccTime { get; set; }
 #if _CLIENT_
     public abstract void ActivePlayerEn(int frame_begin_index);
-#endif 
+#else 
+    public abstract bool StopFrameSyn { get; set; }
+#endif
 }

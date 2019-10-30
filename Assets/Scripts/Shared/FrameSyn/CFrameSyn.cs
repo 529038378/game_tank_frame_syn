@@ -12,6 +12,8 @@ public class CFrameSyn : IFrameSyn
         FrameRatio = 0;
 #if !_CLIENT_
         IsWorking = true;
+        StopFrameSyn = false;
+        m_has_syn_frame_index = 0;
 #endif
     }
 #if _CLIENT_
@@ -29,59 +31,71 @@ public class CFrameSyn : IFrameSyn
         }
     }
 #else
+    public override bool StopFrameSyn { get; set; }
+    int m_has_syn_frame_index;
     void ServerProcess()
     {
+        if(StopFrameSyn)
+        {
+            return;
+        }
         //给其他客户端同步实体事件
-        Dictionary<int, Dictionary<int, IEvent>> record_evs = Logic.Instance().GetSceneMng().GetRecordEvs();
-        CSynOpEvent ev = new CSynOpEvent();
-        if (record_evs.ContainsKey(FrameIndex))
+        while(m_has_syn_frame_index < FrameIndex)
         {
-            Dictionary<int, IEvent> dic_evs = record_evs[FrameIndex];
-            //存在对应的操作类型
-            ev.FrameIndex = FrameIndex;
-            foreach (var en in Logic.Instance().GetSceneMng().GetSceneEns())
+            Dictionary<int, Dictionary<int, IEvent>> record_evs = Logic.Instance().GetSceneMng().GetRecordEvs();
+            CSynOpEvent ev = new CSynOpEvent();
+            if (record_evs.ContainsKey(m_has_syn_frame_index))
             {
-                int id = (int) en.Key;
-                if (dic_evs.ContainsKey(id))
+                Dictionary<int, IEvent> dic_evs = record_evs[m_has_syn_frame_index];
+                //存在对应的操作类型
+                ev.FrameIndex = m_has_syn_frame_index;
+                foreach (var en in Logic.Instance().GetSceneMng().GetSceneEns())
                 {
-                    ev.RecordEnEvs.Add(dic_evs[id]);
+                    int id = (int) en.Key;
+                    if (dic_evs.ContainsKey(id))
+                    {
+                        ev.RecordEnEvs.Add(dic_evs[id]);
+                    }
+                    else
+                    {
+                        IEntity cen = en.Value as IEntity;
+                        IEvent op_ev = new COpEvent(m_has_syn_frame_index, id, cen.GetOpType(), cen.GetExtOpType());
+                        ev.RecordEnEvs.Add(op_ev);
+                    }
                 }
-                else
+                foreach (var ree in ev.RecordEnEvs)
                 {
-                    IEntity cen = en.Value as IEntity;
-                    IEvent op_ev = new COpEvent(FrameIndex, id, cen.GetOpType(), cen.GetExtOpType());
-                    ev.RecordEnEvs.Add(op_ev);
+                    CDestoryEvent oe = ree as CDestoryEvent;
+                    if (null == oe)
+                    {
+                        continue;
+                    }
+
+                    Debug.Log(" frame index : " + oe.FrameIndex.ToString() + " op type : " + oe.EnId.ToString());
                 }
+
             }
-            foreach (var ree in ev.RecordEnEvs)
+            else
             {
-                CDestoryEvent oe = ree as CDestoryEvent;
-                if (null == oe)
+                //不包含的话， 表示所有客户端的帧都比服务器落后，不太可能
+                List<IEvent> coll_evs = new List<IEvent>();
+                foreach (var en in Logic.Instance().GetSceneMng().GetSceneEns())
                 {
-                    continue;
+                    CEntity cee = en.Value as CEntity;
+                    if (null == cee)
+                    {
+                        continue;
+                    }
+                    coll_evs.Add(new COpEvent(m_has_syn_frame_index, cee.EnId, cee.GetOpType(), cee.GetExtOpType()));
                 }
-               
-                Debug.Log(" frame index : " + oe.FrameIndex.ToString() + " op type : " + oe.EnId.ToString());
+                ev.FrameIndex = m_has_syn_frame_index;
+                ev.RecordEnEvs = coll_evs;
             }
-           
+            Logic.Instance().GetNetMng().BroadCast((short) EventPredefined.MsgType.EMT_SYN_ENTITY_OPS, ev);
+            ++m_has_syn_frame_index;
         }
-        else
-        {
-            //不包含的话， 表示所有客户端的帧都比服务器落后，不太可能
-            List<IEvent> coll_evs = new List<IEvent>();
-            foreach (var en in Logic.Instance().GetSceneMng().GetSceneEns())
-            {
-                CEntity cee = en.Value as CEntity;
-                if (null == cee)
-                {
-                    continue;
-                }
-                coll_evs.Add(new COpEvent(FrameIndex, cee.EnId, cee.GetOpType(), cee.GetExtOpType()));
-            }
-            ev.FrameIndex = FrameIndex;
-            ev.RecordEnEvs = coll_evs;
-        }
-        Logic.Instance().GetNetMng().BroadCast((short) EventPredefined.MsgType.EMT_SYN_ENTITY_OPS, ev);
+        
+        m_has_syn_frame_index = FrameIndex;
     }
 #endif
 

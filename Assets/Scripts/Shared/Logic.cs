@@ -9,6 +9,13 @@ public class Logic : MonoBehaviour
     private void Start()
     {
     }
+#if !_CLIENT_
+    public void SwitchServerFrameSyn()
+    {
+        FrameSynLogic.StopFrameSyn = !FrameSynLogic.StopFrameSyn;
+    }
+#endif
+
 #if _CLIENT_
     IEntity m_op_en = null;
     public IEntity GetOpEn()
@@ -174,7 +181,7 @@ public class Logic : MonoBehaviour
             m_replay_mng.Update();
         }
 
-        Debug.Log(" cur loaded scene count : " + SceneManager.sceneCount);
+        //Debug.Log(" cur loaded scene count : " + SceneManager.sceneCount);
     }
 
     private void OnDestroy()

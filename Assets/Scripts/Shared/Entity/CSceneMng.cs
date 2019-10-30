@@ -60,6 +60,7 @@ public class CSceneMng : ISceneMng, INetManagerCallback
         m_acc_time_in_one_logic_frame = 0;
         m_collider_en_map.Clear();
         m_dic_bullet_ens.Clear();
+        m_need_rollback = false;
 #else
         m_ready_player_count = 0;
         m_record_evs.Clear();
@@ -75,7 +76,9 @@ public class CSceneMng : ISceneMng, INetManagerCallback
             {
                 if (null != pair.Value)
                 {
+#if _CLIENT_
                     pair.Value.DestoryImm();
+#endif
                 }
             }
             m_dic_ens.Clear();
@@ -95,6 +98,7 @@ public class CSceneMng : ISceneMng, INetManagerCallback
         m_dic_bullet_ens.Clear();
         m_acc_time_in_one_logic_frame = 0;
         m_frameindex_pre_snapshot.Clear();
+        m_need_rollback = false;
 #else
         m_ready_player_count = 0;
         m_record_evs.Clear();
@@ -396,7 +400,7 @@ public class CSceneMng : ISceneMng, INetManagerCallback
     {
         Logic.Instance().EnterInGame();
     }
-    
+    bool m_need_rollback = false;
     void HandleFrameSynOpsEv(IEvent ev)
     {
         CSynOpEvent soe = ev as CSynOpEvent;
@@ -405,13 +409,18 @@ public class CSceneMng : ISceneMng, INetManagerCallback
             return;
         }
 
-        CheckOpEvent(ev);
-        //同步其他的实体操作
-        foreach (var pair in soe.RecordEnEvs)
+        m_need_rollback = CheckOpEvent(ev);
+        if(!m_need_rollback)
         {
-            IEvent ee = pair as IEvent;
-            HandleEntityEvent(ee);
+            //同步其他的实体操作
+            foreach (var pair in soe.RecordEnEvs)
+            {
+                IEvent ee = pair as IEvent;
+                HandleEntityEvent(ee);
+            }
         }
+        
+        
         //Debug.Log(" server frame index : " + soe.FrameIndex.ToString() + ", local frame index : " + Logic.Instance().FrameSynLogic.FrameIndex.ToString());
     }
     void RecordToReplay(IEvent ev)
@@ -613,13 +622,14 @@ public class CSceneMng : ISceneMng, INetManagerCallback
         if (m_just_enter_new_logic_frame)
         {
             int frame_index = ProcessOneLogicFrameEv();
-            ImplementCurFrameOpType();
-            m_acc_time = FrameSynLogic.FrameBeginAccTime;
-            //没有收到服务器的同步消息，已经开始预测活动了
+            //没有收到服务器的同步消息，已经开始预测活动了,并记录要回退的位置节点信息
             if (-1 == frame_index)
             {
+                RecordSnapShot();
                 RecordPreSnapShot();
             }
+            ImplementCurFrameOpType();
+            m_acc_time = FrameSynLogic.FrameBeginAccTime;
         }
         m_acc_time +=(int) (Time.deltaTime * 1000);
         while ((m_acc_time - EntityPredefined.render_update_gap > 0.000001) && (NetworkPredefinedData.frame_syn_gap > m_acc_time_in_one_logic_frame))
@@ -641,6 +651,10 @@ public class CSceneMng : ISceneMng, INetManagerCallback
                 {
                     break;
                 }
+                if (m_need_rollback)
+                {
+                    ResetToSnapShot();
+                }
                 ImplementCurFrameOpType();
                 AcceOneLogicFrameRender();
                 ++left_times;
@@ -650,9 +664,13 @@ public class CSceneMng : ISceneMng, INetManagerCallback
         }
     }
     //记录按照预测行动的快照
-    Dictionary<int, List<EntityPredefined.EntityPreSnapShot>> m_frameindex_pre_snapshot;//有多个pair，但都是连续的
+    Dictionary<int, List<EntityPredefined.EntityPreSnapShot>> m_frameindex_pre_snapshot;//只记录第一个
     void RecordPreSnapShot()
     {
+        if (0 != m_frameindex_pre_snapshot.Count)
+        {
+            return;
+        }
         List<EntityPredefined.EntityPreSnapShot> list = new List<EntityPredefined.EntityPreSnapShot>();
         foreach (var en in m_dic_ens)
         {
@@ -666,14 +684,24 @@ public class CSceneMng : ISceneMng, INetManagerCallback
             ss.OpType = te.GetEntityOpType();
             ss.ExtOpType = te.GetEntityExtOpType();
             list.Add(ss);
+            Debug.Log(" Record PreSnapShot : " + FrameSynLogic.FrameIndex.ToString());
         }
         m_frameindex_pre_snapshot.Add(FrameSynLogic.FrameIndex, list);
     }
 
     //记录一帧开始前的快照
     Dictionary<int, List<EntityPredefined.EntitySnapShot>> m_frameindex_snapshot;//其实只有一个pair，index只记录上一次最后的一次快照
+    bool IsInPreMove()
+    {
+        return m_frameindex_pre_snapshot.Count >= 1;
+    }
     void RecordSnapShot()
     {
+        //已经进行预测了就不要记录位置快照了
+        if(IsInPreMove())
+        {
+            return;
+        }
         m_frameindex_snapshot.Clear();
         List<EntityPredefined.EntitySnapShot> list = new List<EntityPredefined.EntitySnapShot>();
         foreach (var en in m_dic_ens)
@@ -689,6 +717,8 @@ public class CSceneMng : ISceneMng, INetManagerCallback
             ss.ExtOpType = te.GetEntityExtOpType();
             ss.Pos = te.GetObj().transform.position;
             list.Add(ss);
+            Debug.Log("\n en id : " + ss.EnId.ToString()
+                + " pos : " + ss.Pos.ToString());
         }
         m_frameindex_snapshot.Add(FrameSynLogic.FrameIndex, list);
     }
@@ -713,27 +743,33 @@ public class CSceneMng : ISceneMng, INetManagerCallback
                     }
                     te.GetObj().transform.position = ev.Pos;
                     te.Op(ev.OpType, ev.ExtOpType, false);
+                    Debug.Log(" Return to SnapShot : frame index : " + itr.Key.ToString()
+                        + " en id : " + te.EnId.ToString()
+                        + " en pos : " + ev.Pos.ToString());
+
                 }
             }
         }
         ImplementCurFrameOpType();
+        //预测记录清空
+        m_frameindex_pre_snapshot.Clear();
+        int key = (int)itr.Key;
+        FrameSynLogic.FrameIndex = key;
+        m_need_rollback = false;
     }
-    void CheckOpEvent(IEvent ev)
+    bool CheckOpEvent(IEvent ev)
     {
-        return;
         CEntityEvent cee = ev as CEntityEvent;
         if(null == cee)
         {
-            return;
+            return false;
         }
         if(m_frameindex_pre_snapshot.ContainsKey(cee.FrameIndex))
         {
             //需要回滚的状态
-            if (m_frameindex_snapshot.ContainsKey(cee.FrameIndex))
-            {
-                ResetToSnapShot();
-            }
+            return true;
         }
+        return false;
     }
 #else
     object RecordEvsLock = new object();
@@ -785,9 +821,15 @@ public class CSceneMng : ISceneMng, INetManagerCallback
 #if _CLIENT_
         if(m_just_enter_new_logic_frame)
         {
-            CheckLastFrameLeftMovePos();
+            if (m_need_rollback)
+            {
+                ResetToSnapShot();
+            }
+            else
+            {
+                CheckLastFrameLeftMovePos();
+            }
             m_acc_time_in_one_logic_frame = 0;
-            RecordSnapShot();
         }
 
         if (NeedAccelerate)
@@ -815,7 +857,7 @@ public class CSceneMng : ISceneMng, INetManagerCallback
         {
             if(m_frame_syn.Update()
 #if _CLIENT_
-                && !NeedAccelerate
+                //&& !NeedAccelerate
 #endif
                 )
             {
