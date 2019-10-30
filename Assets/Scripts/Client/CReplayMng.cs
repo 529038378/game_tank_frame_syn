@@ -14,13 +14,12 @@ public class CReplayMng : IReplayMng
     public override void Enter()
     {
         m_record_evs.Clear();
-        m_is_in_replay = false;
         m_in_accelerate = false;
     }
 
     public override void Leave()
     {
-        
+        m_is_in_replay = false;
     }
     public override void OnAccelerate(bool accelerate)
     {
@@ -28,14 +27,22 @@ public class CReplayMng : IReplayMng
     }
     public override void Record(int frame_index, IEvent ev)
     {
-        if (m_record_evs.ContainsKey(frame_index))
+        if (EventPredefined.MsgType.EMT_SYN_ENTITY_OPS == ev.GetEventType() && m_record_evs.ContainsKey(frame_index))
         {
             Debug.Log(" exist? ");
             return;
         }
-        List<IEvent> list_evs = new List<IEvent>();
-        list_evs.Add(ev);
-        m_record_evs.Add(frame_index, list_evs);
+        if (!m_record_evs.ContainsKey(frame_index))
+        {
+            List<IEvent> list_evs = new List<IEvent>();
+            list_evs.Add(ev);
+            m_record_evs.Add(frame_index, list_evs);
+        }
+        else
+        {
+            m_record_evs[frame_index].Add(ev);
+        }
+     
     }
     bool m_is_in_replay;
     bool m_in_accelerate;

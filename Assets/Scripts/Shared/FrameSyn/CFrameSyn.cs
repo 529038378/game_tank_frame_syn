@@ -104,6 +104,9 @@ public class CFrameSyn : IFrameSyn
     {
         bool enter_new_logic_frame = false;
         acc_time +=(int) (Time.deltaTime * 1000);
+        Debug.Log(" frame index :  " + FrameIndex.ToString()
+            + " delta time : " + Time.deltaTime.ToString()
+            + " acc_time : " + acc_time.ToString());
         while(acc_time > NetworkPredefinedData.frame_syn_gap)
         {
             //Logic.Instance().GetSceneMng().UpdateTankEnPostions();

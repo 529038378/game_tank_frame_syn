@@ -99,6 +99,10 @@ public class CSceneMng : ISceneMng, INetManagerCallback
         m_acc_time_in_one_logic_frame = 0;
         m_frameindex_pre_snapshot.Clear();
         m_need_rollback = false;
+        if(Logic.Instance().GetReplayMng().IsInReplay)
+        {
+            Logic.Instance().GetReplayMng().Leave();
+        }
 #else
         m_ready_player_count = 0;
         m_record_evs.Clear();
@@ -145,7 +149,7 @@ public class CSceneMng : ISceneMng, INetManagerCallback
         if (m_just_enter_new_logic_frame)
         {
             CheckLastFrameLeftMovePos();
-            m_acc_time_in_one_logic_frame = FrameSynLogic.FrameBeginAccTime;
+            m_acc_time_in_one_logic_frame = 0;
         }
         if (accelerate)
         {
@@ -156,6 +160,7 @@ public class CSceneMng : ISceneMng, INetManagerCallback
         {
             NormalUpdate();
         }
+        m_just_enter_new_logic_frame = false;
         if (FrameSynLogic.Update(false))
         {
             m_just_enter_new_logic_frame = true;
