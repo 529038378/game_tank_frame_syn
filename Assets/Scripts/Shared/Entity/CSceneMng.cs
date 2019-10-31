@@ -283,6 +283,13 @@ public class CSceneMng : ISceneMng, INetManagerCallback
                 m_record_evs.Add(re.FrameIndex, dic_ev);
             }
         }
+        COpEvent coe = re as COpEvent;
+        if(null != coe)
+        {
+            Debug.Log(" client frame index : " + coe.FrameIndex.ToString()
+            + " op type : " + coe.OpType.ToString());
+        }
+        
         m_record_evs = m_record_evs.OrderBy(o => o.Key).ToDictionary(o=>o.Key, p=>p.Value);
     }
     public override Dictionary<int, Dictionary<int,IEvent>> GetRecordEvs()

@@ -22,10 +22,10 @@ public class CFrameSyn : IFrameSyn
         //把PlayerEn的操作同步到服务器端
         if (null != m_player_en)
         {
-//              Debug.Log(" sysn frame index : " + FrameIndex.ToString()
-//                  + " en id : " + m_player_en.EnId.ToString()
-//                  + " op type : " + m_player_en.GetOpType().ToString()
-//                  + " ext op type : " + m_player_en.GetExtOpType().ToString());
+             Debug.Log(" sysn frame index : " + FrameIndex.ToString()
+                 + " en id : " + m_player_en.EnId.ToString()
+                 + " op type : " + m_player_en.GetOpType().ToString()
+                 + " ext op type : " + m_player_en.GetExtOpType().ToString());
             Logic.Instance().GetNetMng().Send((short) EventPredefined.MsgType.EMT_ENTITY_OP, new COpEvent(FrameIndex, m_player_en.EnId, m_player_en.GetOpType(), m_player_en.GetExtOpType()));
             m_player_en.ResetOpType();
         }
@@ -63,16 +63,7 @@ public class CFrameSyn : IFrameSyn
                         ev.RecordEnEvs.Add(op_ev);
                     }
                 }
-                foreach (var ree in ev.RecordEnEvs)
-                {
-                    CDestoryEvent oe = ree as CDestoryEvent;
-                    if (null == oe)
-                    {
-                        continue;
-                    }
-
-                    Debug.Log(" frame index : " + oe.FrameIndex.ToString() + " op type : " + oe.EnId.ToString());
-                }
+               
 
             }
             else
@@ -92,6 +83,11 @@ public class CFrameSyn : IFrameSyn
                 ev.RecordEnEvs = coll_evs;
             }
             Logic.Instance().GetNetMng().BroadCast((short) EventPredefined.MsgType.EMT_SYN_ENTITY_OPS, ev);
+            foreach (var ree in ev.RecordEnEvs)
+            {
+                COpEvent cee = ree as COpEvent;
+                Debug.Log(" frame index : " + cee.FrameIndex.ToString() + " op type : " + cee.OpType.ToString());
+            }
             ++m_has_syn_frame_index;
         }
         
@@ -104,9 +100,9 @@ public class CFrameSyn : IFrameSyn
     {
         bool enter_new_logic_frame = false;
         acc_time +=(int) (Time.deltaTime * 1000);
-        Debug.Log(" frame index :  " + FrameIndex.ToString()
-            + " delta time : " + Time.deltaTime.ToString()
-            + " acc_time : " + acc_time.ToString());
+//         Debug.Log(" frame index :  " + FrameIndex.ToString()
+//             + " delta time : " + Time.deltaTime.ToString()
+//             + " acc_time : " + acc_time.ToString());
         while(acc_time > NetworkPredefinedData.frame_syn_gap)
         {
             //Logic.Instance().GetSceneMng().UpdateTankEnPostions();

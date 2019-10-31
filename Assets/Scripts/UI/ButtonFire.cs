@@ -15,6 +15,10 @@ public class ButtonFire : MonoBehaviour
 
     public void ButtonUp()
     {
+        if (null == GetOpEn())
+        {
+            return;
+        }
         GetOpEn().Op(GetOpEn().GetOpType(), EntityPredefined.EntityExtOpType.EEOT_FIRE);
     }
 }

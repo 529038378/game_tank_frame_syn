@@ -15,10 +15,18 @@ public class ButtonBackward : MonoBehaviour
 
     public void ButtonDown()
     {
+        if(null == GetOpEn())
+        {
+            return;
+        }
         GetOpEn().Op(EntityPredefined.EntityOpType.EOT_BACKWARD, EntityPredefined.EntityExtOpType.EEOT_NONE);        
     }
     public void ButtonUp()
     {
+        if (null == GetOpEn())
+        {
+            return;
+        }
         GetOpEn().Op(EntityPredefined.EntityOpType.EOT_IDLE, EntityPredefined.EntityExtOpType.EEOT_NONE);
     }
 }
