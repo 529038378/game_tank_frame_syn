@@ -29,6 +29,6 @@ public class EventPredefined
 
 #if !_CLIENT_
     //局内的最多玩家数量
-    public const int max_player = 1;
+    public const int max_player = 2;
 #endif 
 }

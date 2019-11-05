@@ -22,10 +22,10 @@ public class CFrameSyn : IFrameSyn
         //把PlayerEn的操作同步到服务器端
         if (null != m_player_en)
         {
-             Debug.Log(" sysn frame index : " + FrameIndex.ToString()
-                 + " en id : " + m_player_en.EnId.ToString()
-                 + " op type : " + m_player_en.GetOpType().ToString()
-                 + " ext op type : " + m_player_en.GetExtOpType().ToString());
+//              Debug.Log(" sysn frame index : " + FrameIndex.ToString()
+//                  + " en id : " + m_player_en.EnId.ToString()
+//                  + " op type : " + m_player_en.GetOpType().ToString()
+//                  + " ext op type : " + m_player_en.GetExtOpType().ToString());
             Logic.Instance().GetNetMng().Send((short) EventPredefined.MsgType.EMT_ENTITY_OP, new COpEvent(FrameIndex, m_player_en.EnId, m_player_en.GetOpType(), m_player_en.GetExtOpType()));
             m_player_en.ResetOpType();
         }
